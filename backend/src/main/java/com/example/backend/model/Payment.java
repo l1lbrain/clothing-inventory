@@ -1,28 +1,36 @@
 package com.example.backend.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Payment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receipt_id", nullable = false)
-    private GoodsReceipt receipt;
+    @JoinColumn(name = "purchase_order_id", nullable = false)
+    private PurchaseOrder purchaseOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_method_id", nullable = false)
+    private PaymentMethod paymentMethod;
 
     @Column(name = "payment_date", nullable = false)
     private LocalDateTime paymentDate;
-
-    @Column(name = "payment_method", nullable = false, length = 50)
-    private String paymentMethod;
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
@@ -34,6 +42,11 @@ public class Payment {
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

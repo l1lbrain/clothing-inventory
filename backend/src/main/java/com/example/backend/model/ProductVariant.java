@@ -1,15 +1,22 @@
 package com.example.backend.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "product_variants")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ProductVariant {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,14 +38,19 @@ public class ProductVariant {
     private String size;
 
     @Column(name = "purchase_price", nullable = false, precision = 15, scale = 2)
-    private BigDecimal purchasePrice;
+    private BigDecimal purchasePrice = BigDecimal.ZERO;
 
     @Column(name = "sale_price", nullable = false, precision = 15, scale = 2)
-    private BigDecimal salePrice;
+    private BigDecimal salePrice = BigDecimal.ZERO;
 
-    @Column(columnDefinition = "TINYINT DEFAULT 1")
-    private Integer status = 1;
+    @Column(length = 20)
+    private String status = "ACTIVE";
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

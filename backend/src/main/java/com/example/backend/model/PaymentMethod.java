@@ -5,35 +5,29 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "purchase_order_details")
+@Table(name = "payment_methods")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PurchaseOrderDetail {
+public class PaymentMethod {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "purchase_order_id", nullable = false)
-    private PurchaseOrder purchaseOrder;
+    @Column(nullable = false, unique = true, length = 50)
+    private String code;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_id", nullable = false)
-    private ProductVariant variant;
+    @Column(nullable = false, length = 100)
+    private String name;
 
-    @Column(nullable = false)
-    private Integer quantity;
-
-    @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
-    private BigDecimal unitPrice;
+    @Column(length = 20)
+    private String status = "ACTIVE";
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

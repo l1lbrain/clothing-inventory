@@ -1,28 +1,36 @@
 package com.example.backend.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "products")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Product {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_code", nullable = false, unique = true, length = 50)
-    private String productCode;
+    @Column(nullable = false, unique = true, length = 50)
+    private String code;
 
-    @Column(name = "product_name", nullable = false)
-    private String productName;
+    @Column(nullable = false, length = 255)
+    private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(length = 255)
     private String brand;
 
     @Column(columnDefinition = "TEXT")
@@ -31,9 +39,14 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    @Column(columnDefinition = "TINYINT DEFAULT 1")
-    private Integer status = 1;
+    @Column(length = 20)
+    private String status = "ACTIVE";
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }
