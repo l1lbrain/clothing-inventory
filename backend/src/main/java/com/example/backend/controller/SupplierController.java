@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.SupplierRequest;
-import com.example.backend.dto.response.SupplierResponse;
+import com.example.backend.dto.response.SupplierResponseDto;
 import com.example.backend.service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +18,12 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping
-    public ResponseEntity<List<SupplierResponse>> getAllSuppliers() {
+    public ResponseEntity<List<SupplierResponseDto>> getAllSuppliers() {
         return ResponseEntity.ok(supplierService.getAllSuppliers());
     }
 
     @PostMapping
-    public ResponseEntity<SupplierResponse> createSupplier(@Valid @RequestBody SupplierRequest request) {
+    public ResponseEntity<SupplierResponseDto> createSupplier(@Valid @RequestBody SupplierRequest request) {
         return ResponseEntity.ok(supplierService.createSupplier(request));
     }
 }

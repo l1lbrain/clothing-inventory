@@ -1,5 +1,6 @@
 package com.example.backend.security.detail;
 
+import com.example.backend.model.Role;
 import com.example.backend.model.User;
 import com.example.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,9 @@ public class UserDetailService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userService.findByUsername(username);
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(user.getRole().getName()));
+        for (Role role : user.getRoles()) {
+            authorities.add(new SimpleGrantedAuthority(role.getName()));
+        }
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),

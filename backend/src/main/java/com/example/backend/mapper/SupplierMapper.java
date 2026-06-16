@@ -1,7 +1,7 @@
 package com.example.backend.mapper;
 
 import com.example.backend.dto.request.SupplierRequest;
-import com.example.backend.dto.response.SupplierResponse;
+import com.example.backend.dto.response.SupplierResponseDto;
 import com.example.backend.model.Supplier;
 import org.mapstruct.Mapper;
 
@@ -9,5 +9,5 @@ import org.mapstruct.Mapper;
 public interface SupplierMapper {
     Supplier toEntity(SupplierRequest request);
 
-    SupplierResponse toResponse(Supplier supplier);
+    SupplierResponseDto toResponse(Supplier supplier);
 }

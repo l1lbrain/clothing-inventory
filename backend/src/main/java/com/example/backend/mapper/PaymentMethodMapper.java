@@ -1,7 +1,7 @@
 package com.example.backend.mapper;
 
 import com.example.backend.dto.request.PaymentMethodRequest;
-import com.example.backend.dto.response.PaymentMethodResponse;
+import com.example.backend.dto.response.PaymentMethodResponseDto;
 import com.example.backend.model.PaymentMethod;
 import org.mapstruct.Mapper;
 
@@ -9,5 +9,5 @@ import org.mapstruct.Mapper;
 public interface PaymentMethodMapper {
     PaymentMethod toEntity(PaymentMethodRequest request);
 
-    PaymentMethodResponse toResponse(PaymentMethod paymentMethod);
+    PaymentMethodResponseDto toResponse(PaymentMethod paymentMethod);
 }

@@ -1,7 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.request.SupplierRequest;
-import com.example.backend.dto.response.SupplierResponse;
+import com.example.backend.dto.response.SupplierResponseDto;
 import com.example.backend.mapper.SupplierMapper;
 import com.example.backend.model.Supplier;
 import com.example.backend.repository.SupplierRepository;
@@ -18,15 +18,15 @@ public class SupplierService {
     private final SupplierRepository supplierRepository;
     private final SupplierMapper supplierMapper;
 
-    public List<SupplierResponse> getAllSuppliers() {
+    public List<SupplierResponseDto> getAllSuppliers() {
         return supplierRepository.findAll().stream()
                 .map(supplierMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public SupplierResponse createSupplier(SupplierRequest request) {
+    public SupplierResponseDto createSupplier(SupplierRequest request) {
         Supplier supplier = supplierMapper.toEntity(request);
-        supplier.setStatus("ACTIVE"); // Default status
+        supplier.setStatus("ACTIVE");
         Supplier savedSupplier = supplierRepository.save(supplier);
         return supplierMapper.toResponse(savedSupplier);
     }

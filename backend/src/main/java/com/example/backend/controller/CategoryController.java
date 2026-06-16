@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.CategoryRequest;
-import com.example.backend.dto.response.CategoryResponse;
+import com.example.backend.dto.response.CategoryResponseDto;
 import com.example.backend.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +18,12 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+    public ResponseEntity<List<CategoryResponseDto>> getAllCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
+    public ResponseEntity<CategoryResponseDto> createCategory(@Valid @RequestBody CategoryRequest request) {
         return ResponseEntity.ok(categoryService.createCategory(request));
     }
 }

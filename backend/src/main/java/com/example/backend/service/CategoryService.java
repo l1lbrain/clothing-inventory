@@ -1,7 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.request.CategoryRequest;
-import com.example.backend.dto.response.CategoryResponse;
+import com.example.backend.dto.response.CategoryResponseDto;
 import com.example.backend.mapper.CategoryMapper;
 import com.example.backend.model.Category;
 import com.example.backend.repository.CategoryRepository;
@@ -18,13 +18,13 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
-    public List<CategoryResponse> getAllCategories() {
+    public List<CategoryResponseDto> getAllCategories() {
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public CategoryResponse createCategory(CategoryRequest request) {
+    public CategoryResponseDto createCategory(CategoryRequest request) {
         Category category = categoryMapper.toEntity(request);
         category.setStatus("ACTIVE"); // Default status
         Category savedCategory = categoryRepository.save(category);

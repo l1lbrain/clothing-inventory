@@ -1,7 +1,7 @@
 package com.example.backend.mapper;
 
 import com.example.backend.dto.request.CategoryRequest;
-import com.example.backend.dto.response.CategoryResponse;
+import com.example.backend.dto.response.CategoryResponseDto;
 import com.example.backend.model.Category;
 import org.mapstruct.Mapper;
 
@@ -9,5 +9,5 @@ import org.mapstruct.Mapper;
 public interface CategoryMapper {
     Category toEntity(CategoryRequest request);
 
-    CategoryResponse toResponse(Category category);
+    CategoryResponseDto toResponse(Category category);
 }
