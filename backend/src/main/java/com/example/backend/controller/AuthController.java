@@ -1,10 +1,13 @@
 package com.example.backend.controller;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.dto.request.AuthRequestDto;
 import com.example.backend.dto.response.AuthResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.service.AuthService;
+import com.example.backend.service.CacheService;
+import com.example.backend.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
+    private final CacheService cacheService;
 
     @GetMapping("/me")
     public ResponseEntity<AuthResponseDto.Me> me(@AuthenticationPrincipal Jwt jwt) {
@@ -32,6 +37,25 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDto.info> register(@Valid @RequestBody AuthRequestDto.Register register, HttpServletResponse response) {
         return ResponseEntity.ok(authService.register(register, response));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@CookieValue(value = "refresh_token", required = false) String refreshToken) {
+        if (refreshToken == null) throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
+        DecodedJWT jwt;
+        try {
+            jwt = jwtUtil.verifyToken(refreshToken);
+
+            if (!"refresh_token".equals(jwt.getClaim("type").asString())) {
+                throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
+            }
+
+        } catch (Exception e) {
+            throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
+        }
+        if (!cacheService.deleteRefreshToken(jwt.getSubject(), refreshToken))
+            throw new InvalidException(ErrorCode.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/refresh-token")

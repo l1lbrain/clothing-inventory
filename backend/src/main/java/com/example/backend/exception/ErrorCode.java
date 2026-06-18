@@ -10,7 +10,8 @@ public enum ErrorCode {
     INACTIVE(400, "Account is inactive"),
     ACCOUNT_NOT_FOUND(404, "Account not found"),
     CONFLICT_ACCOUNT(409, "Account already exists"),
-    UNAUTHORIZED_REFRESH_TOKEN(401, "Invalid refresh token");
+    UNAUTHORIZED_REFRESH_TOKEN(401, "Invalid refresh token"),
+    INTERNAL_SERVER_ERROR(500, "Internal server error");
 
     private final int status;
     private final String message;

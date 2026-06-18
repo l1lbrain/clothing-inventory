@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.dto.request.AuthRequestDto;
 import com.example.backend.dto.response.AuthResponseDto;
 import com.example.backend.exception.ErrorCode;
@@ -95,7 +96,18 @@ public class AuthService {
     }
 
     public AuthResponseDto.RefreshToken refreshAccessToken(String refreshToken) {
-        String uuid = jwtUtil.extractSubject(refreshToken);
+        DecodedJWT jwt;
+        try {
+            jwt = jwtUtil.verifyToken(refreshToken);
+
+            if (!"refresh_token".equals(jwt.getClaim("type").asString())) {
+                throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
+            }
+
+        } catch (Exception e) {
+            throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
+        }
+        String uuid = jwt.getSubject();
         User user = userRepository.findByUuid(uuid).orElseThrow(() -> new InvalidException(ErrorCode.ACCOUNT_NOT_FOUND));
         if (user.getStatus().equals("INACTIVE")) throw new InvalidException(ErrorCode.INACTIVE);
         UserDetails userDetails = userDetailService.loadUserByUsername(user.getUsername());
@@ -104,4 +116,6 @@ public class AuthService {
         accessToken.setAccessToken(jwtUtil.generateAccessToken(uuid, authentication));
         return accessToken;
     }
+
+
 }

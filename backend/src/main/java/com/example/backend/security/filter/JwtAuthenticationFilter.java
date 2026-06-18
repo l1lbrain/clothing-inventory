@@ -1,5 +1,6 @@
 package com.example.backend.security.filter;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.security.exception.FilterExceptionHandler;
 import com.example.backend.util.JwtUtil;
@@ -39,13 +40,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authHeader.substring(7);
-            String uuid = jwtUtil.extractSubject(token);
+            DecodedJWT jwt = jwtUtil.verifyToken(token);
+            String uuid = jwt.getSubject();
 
             if (uuid != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(uuid);
 
                 if (jwtUtil.isTokenValid(token, userDetails)) {
+                    if (!"access_token".equals(jwt.getClaim("type").asString())) {
+                        filterExceptionHandler.writeError(response, ErrorCode.UNAUTHORIZED_ACCESS.getStatus(), ErrorCode.UNAUTHORIZED_ACCESS.getMessage());
+                        return;
+                    }
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

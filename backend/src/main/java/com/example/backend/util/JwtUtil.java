@@ -1,6 +1,8 @@
 package com.example.backend.util;
 
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
@@ -32,6 +34,9 @@ public class JwtUtil {
     private int accessTokenLifeTime;
     @Value("${jwt.refresh-token-validity-in-seconds}")
     private int refreshTokenLifeTime;
+    @Value("${jwt.secret-key}")
+    private String jwtSecretKey;
+    private final Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
 
     public String generateAccessToken(String uuid, Authentication authentication) {
         Instant now = Instant.now();
@@ -84,5 +89,12 @@ public class JwtUtil {
             throw new InvalidException(ErrorCode.TOKEN_SUBJECT_MISMATCH);
         }
         return true;
+    }
+
+    public DecodedJWT verifyToken(String token) {
+        JWTVerifier verifier = JWT.require(algorithm)
+                .build();
+
+        return verifier.verify(token);
     }
 }
