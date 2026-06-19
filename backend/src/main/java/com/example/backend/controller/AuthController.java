@@ -1,6 +1,5 @@
 package com.example.backend.controller;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.dto.request.AuthRequestDto;
 import com.example.backend.dto.response.AuthResponseDto;
 import com.example.backend.exception.ErrorCode;
@@ -42,11 +41,11 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@CookieValue(value = "refresh_token", required = false) String refreshToken) {
         if (refreshToken == null) throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
-        DecodedJWT jwt;
+        Jwt jwt;
         try {
             jwt = jwtUtil.verifyToken(refreshToken);
 
-            if (!"refresh_token".equals(jwt.getClaim("type").asString())) {
+            if (!"refresh_token".equals(jwt.getClaim("type").toString())) {
                 throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
             }
 

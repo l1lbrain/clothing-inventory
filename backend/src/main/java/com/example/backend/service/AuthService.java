@@ -1,6 +1,5 @@
 package com.example.backend.service;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.dto.request.AuthRequestDto;
 import com.example.backend.dto.response.AuthResponseDto;
 import com.example.backend.exception.ErrorCode;
@@ -21,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 
@@ -96,11 +96,11 @@ public class AuthService {
     }
 
     public AuthResponseDto.RefreshToken refreshAccessToken(String refreshToken) {
-        DecodedJWT jwt;
+        Jwt jwt;
         try {
             jwt = jwtUtil.verifyToken(refreshToken);
 
-            if (!"refresh_token".equals(jwt.getClaim("type").asString())) {
+            if (!"refresh_token".equals(jwt.getClaim("type").toString())) {
                 throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
             }
 

@@ -1,8 +1,6 @@
 package com.example.backend.util;
 
 import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
@@ -14,10 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -34,9 +29,7 @@ public class JwtUtil {
     private int accessTokenLifeTime;
     @Value("${jwt.refresh-token-validity-in-seconds}")
     private int refreshTokenLifeTime;
-    @Value("${jwt.secret-key}")
-    private String jwtSecretKey;
-    private final Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+    private final JwtDecoder jwtDecoder;
 
     public String generateAccessToken(String uuid, Authentication authentication) {
         Instant now = Instant.now();
@@ -91,10 +84,7 @@ public class JwtUtil {
         return true;
     }
 
-    public DecodedJWT verifyToken(String token) {
-        JWTVerifier verifier = JWT.require(algorithm)
-                .build();
-
-        return verifier.verify(token);
+    public Jwt verifyToken(String token) {
+        return jwtDecoder.decode(token);
     }
 }
