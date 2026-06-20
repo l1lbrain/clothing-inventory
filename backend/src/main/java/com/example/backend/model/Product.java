@@ -39,6 +39,15 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "option1_name", length = 100)
+    private String option1Name;
+
+    @Column(name = "option2_name", length = 100)
+    private String option2Name;
+
+    @Column(name = "option3_name", length = 100)
+    private String option3Name;
+
     @Column(length = 20)
     private String status = "ACTIVE";
 

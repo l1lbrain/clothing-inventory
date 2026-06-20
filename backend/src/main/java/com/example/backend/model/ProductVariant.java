@@ -28,14 +28,14 @@ public class ProductVariant {
     @Column(nullable = false, unique = true, length = 100)
     private String sku;
 
-    @Column(length = 100)
-    private String barcode;
+    @Column(name = "option1_value", length = 100)
+    private String option1Value;
 
-    @Column(length = 100)
-    private String color;
+    @Column(name = "option2_value", length = 100)
+    private String option2Value;
 
-    @Column(length = 50)
-    private String size;
+    @Column(name = "option3_value", length = 100)
+    private String option3Value;
 
     @Column(name = "purchase_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal purchasePrice = BigDecimal.ZERO;

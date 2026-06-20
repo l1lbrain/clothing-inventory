@@ -3,37 +3,41 @@ package com.example.backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "inventory_transactions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Payment {
+public class InventoryTransaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "purchase_order_id", nullable = false)
-    private PurchaseOrder purchaseOrder;
+    @JoinColumn(name = "variant_id", nullable = false)
+    private ProductVariant variant;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_method_id", nullable = false)
-    private PaymentMethod paymentMethod;
+    @JoinColumn(name = "purchase_order_detail_id")
+    private PurchaseOrderDetail purchaseOrderDetail;
 
-    @Column(name = "payment_date", nullable = false)
-    private LocalDateTime paymentDate;
+    @Column(name = "transaction_type", nullable = false, length = 20)
+    private String transactionType;
 
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal amount;
+    @Column(nullable = false)
+    private Integer quantity;
+
+    @Column(name = "quantity_before", nullable = false)
+    private Integer quantityBefore;
+
+    @Column(name = "quantity_after", nullable = false)
+    private Integer quantityAfter;
 
     @Column(columnDefinition = "TEXT")
     private String note;
@@ -45,8 +49,4 @@ public class Payment {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }
