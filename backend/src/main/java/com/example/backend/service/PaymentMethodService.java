@@ -5,7 +5,6 @@ import com.example.backend.dto.response.PaymentMethodResponseDto;
 import com.example.backend.mapper.PaymentMethodMapper;
 import com.example.backend.model.PaymentMethod;
 import com.example.backend.repository.PaymentMethodRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +24,6 @@ public class PaymentMethodService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public PaymentMethodResponseDto createPaymentMethod(PaymentMethodRequestDto request) {
         PaymentMethod paymentMethod = paymentMethodMapper.toEntity(request);
         paymentMethod.setStatus("ACTIVE"); // Default status

@@ -74,7 +74,7 @@ export function SupplierManagement() {
       }
     };
     fetchSuppliers();
-  }, [currentPage, refreshTrigger]);
+  }, [currentPage, refreshTrigger, showToast]);
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
 
@@ -167,7 +167,7 @@ export function SupplierManagement() {
     });
 
     if (changedCount === 0) {
-      showToast('Không có thay đổi nào cần cập nhật!', 'info');
+      showToast('Không có thay đổi nào cần cập nhật!', 'warning');
       closeModal();
       return;
     }

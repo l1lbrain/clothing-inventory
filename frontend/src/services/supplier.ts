@@ -117,7 +117,7 @@ export async function updateSupplier(code: string, form: SupplierFormData): Prom
 }
 
 export async function patchSupplier(code: string, partialFields: Partial<SupplierFormData>): Promise<Supplier> {
-  const body: Record<string, any> = {};
+  const body: Record<string, string> = {};
   if (partialFields.companyName !== undefined) body.name = partialFields.companyName;
   if (partialFields.representative !== undefined) body.contactPerson = partialFields.representative;
   if (partialFields.phone !== undefined) body.phone = partialFields.phone;

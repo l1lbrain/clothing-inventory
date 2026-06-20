@@ -1,15 +1,14 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.SupplierRequestDto;
-import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.SupplierResponseDto;
 import com.example.backend.service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/suppliers")
@@ -19,34 +18,12 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping
-    public ResponseEntity<PageResponseDto<SupplierResponseDto>> getAllSuppliers(@RequestParam(name = "page", defaultValue = "1") int pageNumber) {
-        Pageable pageable = PageRequest.of(pageNumber - 1, 10);
-        return ResponseEntity.ok(supplierService.getAllSuppliers(pageable));
-    }
-
-    @GetMapping("/{code}")
-    public ResponseEntity<SupplierResponseDto> getSupplierByCode(@PathVariable String code) {
-        return ResponseEntity.ok(supplierService.getSupplierByCode(code));
+    public ResponseEntity<List<SupplierResponseDto>> getAllSuppliers() {
+        return ResponseEntity.ok(supplierService.getAllSuppliers());
     }
 
     @PostMapping
     public ResponseEntity<SupplierResponseDto> createSupplier(@Valid @RequestBody SupplierRequestDto request) {
         return ResponseEntity.ok(supplierService.createSupplier(request));
-    }
-
-    @PutMapping("/{code}")
-    public ResponseEntity<SupplierResponseDto> updateSupplier(@PathVariable String code, @Valid @RequestBody SupplierRequestDto request) {
-        return ResponseEntity.ok(supplierService.updateSupplier(code, request));
-    }
-
-    @PatchMapping("/{code}")
-    public ResponseEntity<SupplierResponseDto> patchSupplier(@PathVariable String code, @RequestBody SupplierRequestDto request) {
-        return ResponseEntity.ok(supplierService.updateSupplier(code, request));
-    }
-
-    @DeleteMapping("/{code}")
-    public ResponseEntity<Void> deleteSupplier(@PathVariable String code) {
-        supplierService.deleteSupplier(code);
-        return ResponseEntity.noContent().build();
     }
 }
