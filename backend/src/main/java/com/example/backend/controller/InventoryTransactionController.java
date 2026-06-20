@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.TransactionSearchRequest;
-import com.example.backend.dto.response.TransactionResponse;
+import com.example.backend.dto.request.TransactionSearchRequestDto;
+import com.example.backend.dto.response.TransactionResponseDto;
 import com.example.backend.service.InventoryTransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +17,15 @@ public class InventoryTransactionController {
     private final InventoryTransactionService transactionService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<TransactionResponse>> searchTransactions(@Valid TransactionSearchRequest searchRequest) {
+    public ResponseEntity<List<TransactionResponseDto>> searchTransactions(@Valid TransactionSearchRequestDto searchRequest) {
         // Lưu ý: Đối với GET param, Spring tự hiểu là @ModelAttribute, thêm @Valid phía trước để check annotation @Pattern
-        List<TransactionResponse> response = transactionService.searchTransactions(searchRequest);
+        List<TransactionResponseDto> response = transactionService.searchTransactions(searchRequest);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/variant/{variantId}")
-    public ResponseEntity<List<TransactionResponse>> getHistoryByVariantId(@PathVariable Long variantId) {
-        List<TransactionResponse> response = transactionService.getHistoryByVariantId(variantId);
+    public ResponseEntity<List<TransactionResponseDto>> getHistoryByVariantId(@PathVariable Long variantId) {
+        List<TransactionResponseDto> response = transactionService.getHistoryByVariantId(variantId);
         return ResponseEntity.ok(response);
     }
 }

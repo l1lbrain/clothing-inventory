@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class CategoryRequest {
+public class CategoryRequestDto {
 
     @NotBlank(message = "Category code is required")
     @Size(max = 50, message = "Category code must be at most 50 characters")

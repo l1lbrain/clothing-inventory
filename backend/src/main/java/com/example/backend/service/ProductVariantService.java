@@ -1,8 +1,8 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.request.VariantCreateRequest;
-import com.example.backend.dto.request.VariantUpdateRequest;
-import com.example.backend.dto.response.VariantResponse;
+import com.example.backend.dto.request.VariantCreateRequestDto;
+import com.example.backend.dto.request.VariantUpdateRequestDto;
+import com.example.backend.dto.response.VariantResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.ProductVariantMapper;
@@ -24,7 +24,7 @@ public class ProductVariantService {
     private final ProductVariantMapper variantMapper;
 
     @Transactional
-    public VariantResponse createVariant(VariantCreateRequest request) {
+    public VariantResponseDto createVariant(VariantCreateRequestDto request) {
         if (variantRepository.existsBySku(request.getSku())) {
             throw new InvalidException(ErrorCode.SKU_ALREADY_EXISTS);
         }
@@ -57,7 +57,7 @@ public class ProductVariantService {
     }
 
     @Transactional
-    public VariantResponse updateVariant(Long id, VariantUpdateRequest request) {
+    public VariantResponseDto updateVariant(Long id, VariantUpdateRequestDto request) {
         ProductVariant variant = variantRepository.findById(id)
                 .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
 
@@ -74,7 +74,7 @@ public class ProductVariantService {
         return variantMapper.toResponse(variantRepository.save(variant), product);
     }
 
-    public VariantResponse getVariantById(Long id) {
+    public VariantResponseDto getVariantById(Long id) {
         ProductVariant variant = variantRepository.findById(id)
                 .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
 
@@ -83,7 +83,7 @@ public class ProductVariantService {
         return variantMapper.toResponse(variant, product);
     }
 
-    public List<VariantResponse> getAllVariants() {
+    public List<VariantResponseDto> getAllVariants() {
         return variantRepository.findAll().stream().map(variant -> {
             // SỬA LỖI: Tận dụng quan hệ Lazy loading để lấy Product, tránh loop Repo tìm ID liên tục
             Product product = variant.getProduct();

@@ -1,6 +1,6 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.request.PaymentMethodRequest;
+import com.example.backend.dto.request.PaymentMethodRequestDto;
 import com.example.backend.dto.response.PaymentMethodResponseDto;
 import com.example.backend.mapper.PaymentMethodMapper;
 import com.example.backend.model.PaymentMethod;
@@ -24,7 +24,7 @@ public class PaymentMethodService {
                 .collect(Collectors.toList());
     }
 
-    public PaymentMethodResponseDto createPaymentMethod(PaymentMethodRequest request) {
+    public PaymentMethodResponseDto createPaymentMethod(PaymentMethodRequestDto request) {
         PaymentMethod paymentMethod = paymentMethodMapper.toEntity(request);
         paymentMethod.setStatus("ACTIVE"); // Default status
         PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);

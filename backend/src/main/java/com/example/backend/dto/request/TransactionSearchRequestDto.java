@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TransactionSearchRequest {
+public class TransactionSearchRequestDto {
 
     private Long variantId;
 

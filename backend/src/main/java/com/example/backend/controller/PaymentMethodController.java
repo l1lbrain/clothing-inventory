@@ -1,6 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.PaymentMethodRequest;
+import com.example.backend.dto.request.PaymentMethodRequestDto;
 import com.example.backend.dto.response.PaymentMethodResponseDto;
 import com.example.backend.service.PaymentMethodService;
 import jakarta.validation.Valid;
@@ -23,7 +23,7 @@ public class PaymentMethodController {
     }
 
     @PostMapping
-    public ResponseEntity<PaymentMethodResponseDto> createPaymentMethod(@Valid @RequestBody PaymentMethodRequest request) {
+    public ResponseEntity<PaymentMethodResponseDto> createPaymentMethod(@Valid @RequestBody PaymentMethodRequestDto request) {
         return ResponseEntity.ok(paymentMethodService.createPaymentMethod(request));
     }
 }

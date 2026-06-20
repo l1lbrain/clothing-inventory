@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class PaymentMethodRequest {
+public class PaymentMethodRequestDto {
 
     @NotBlank(message = "Payment method code is required")
     @Size(max = 50, message = "Payment method code must be at most 50 characters")

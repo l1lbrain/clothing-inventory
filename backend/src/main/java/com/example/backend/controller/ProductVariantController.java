@@ -1,9 +1,9 @@
 package com.example.backend.controller;
 
 
-import com.example.backend.dto.request.VariantCreateRequest;
-import com.example.backend.dto.request.VariantUpdateRequest;
-import com.example.backend.dto.response.VariantResponse;
+import com.example.backend.dto.request.VariantCreateRequestDto;
+import com.example.backend.dto.request.VariantUpdateRequestDto;
+import com.example.backend.dto.response.VariantResponseDto;
 import com.example.backend.service.ProductVariantService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,28 +20,28 @@ public class ProductVariantController {
     private final ProductVariantService variantService;
 
     @PostMapping
-    public ResponseEntity<VariantResponse> createVariant(@Valid @RequestBody VariantCreateRequest request) {
-        VariantResponse response = variantService.createVariant(request);
+    public ResponseEntity<VariantResponseDto> createVariant(@Valid @RequestBody VariantCreateRequestDto request) {
+        VariantResponseDto response = variantService.createVariant(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<VariantResponse> updateVariant(
+    public ResponseEntity<VariantResponseDto> updateVariant(
             @PathVariable Long id,
-            @Valid @RequestBody VariantUpdateRequest request) {
-        VariantResponse response = variantService.updateVariant(id, request);
+            @Valid @RequestBody VariantUpdateRequestDto request) {
+        VariantResponseDto response = variantService.updateVariant(id, request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<VariantResponse> getVariantById(@PathVariable Long id) {
-        VariantResponse response = variantService.getVariantById(id);
+    public ResponseEntity<VariantResponseDto> getVariantById(@PathVariable Long id) {
+        VariantResponseDto response = variantService.getVariantById(id);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<VariantResponse>> getAllVariants() {
-        List<VariantResponse> response = variantService.getAllVariants();
+    public ResponseEntity<List<VariantResponseDto>> getAllVariants() {
+        List<VariantResponseDto> response = variantService.getAllVariants();
         return ResponseEntity.ok(response);
     }
 }

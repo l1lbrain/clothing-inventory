@@ -1,7 +1,7 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.request.TransactionSearchRequest;
-import com.example.backend.dto.response.TransactionResponse;
+import com.example.backend.dto.request.TransactionSearchRequestDto;
+import com.example.backend.dto.response.TransactionResponseDto;
 import com.example.backend.mapper.InventoryTransactionMapper;
 import com.example.backend.model.InventoryTransaction;
 import com.example.backend.repository.InventoryTransactionRepository;
@@ -20,7 +20,7 @@ public class InventoryTransactionService {
     private final InventoryTransactionRepository transactionRepository;
     private final InventoryTransactionMapper transactionMapper;
 
-    public List<TransactionResponse> searchTransactions(TransactionSearchRequest searchRequest) {
+    public List<TransactionResponseDto> searchTransactions(TransactionSearchRequestDto searchRequest) {
         Specification<InventoryTransaction> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -49,7 +49,7 @@ public class InventoryTransactionService {
                 .collect(Collectors.toList());
     }
 
-    public List<TransactionResponse> getHistoryByVariantId(Long variantId) {
+    public List<TransactionResponseDto> getHistoryByVariantId(Long variantId) {
         return transactionRepository.findByVariantIdOrderByCreatedAtDesc(variantId).stream()
                 .map(transactionMapper::toResponse)
                 .collect(Collectors.toList());

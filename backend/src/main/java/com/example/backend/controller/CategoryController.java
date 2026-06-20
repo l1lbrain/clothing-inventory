@@ -1,6 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.CategoryRequest;
+import com.example.backend.dto.request.CategoryRequestDto;
 import com.example.backend.dto.response.CategoryResponseDto;
 import com.example.backend.service.CategoryService;
 import jakarta.validation.Valid;
@@ -23,7 +23,7 @@ public class CategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<CategoryResponseDto> createCategory(@Valid @RequestBody CategoryRequest request) {
+    public ResponseEntity<CategoryResponseDto> createCategory(@Valid @RequestBody CategoryRequestDto request) {
         return ResponseEntity.ok(categoryService.createCategory(request));
     }
 }

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class InventoryAdjustRequest {
+public class InventoryAdjustRequestDto {
 
     @NotNull(message = "ID biến thể không được để trống")
     private Long variantId;

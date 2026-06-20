@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class SupplierRequest {
+public class SupplierRequestDto {
 
     @NotBlank(message = "Supplier code is required")
     @Size(max = 50, message = "Supplier code must be at most 50 characters")

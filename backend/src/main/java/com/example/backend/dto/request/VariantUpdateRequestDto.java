@@ -1,7 +1,7 @@
 package com.example.backend.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -14,14 +14,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class VariantCreateRequest {
-
-    @NotNull(message = "ID sản phẩm không được để trống")
-    private Long productId;
-
-    @NotBlank(message = "Mã SKU không được để trống")
-    @Size(max = 100, message = "Mã SKU không được vượt quá 100 ký tự")
-    private String sku;
+public class VariantUpdateRequestDto {
 
     @Size(max = 100, message = "Giá trị thuộc tính 1 không được vượt quá 100 ký tự")
     private String option1Value;
@@ -39,4 +32,8 @@ public class VariantCreateRequest {
     @NotNull(message = "Giá bán không được để trống")
     @PositiveOrZero(message = "Giá bán phải lớn hơn hoặc bằng 0")
     private BigDecimal salePrice;
+
+    @NotNull(message = "Trạng thái không được để trống")
+    @Pattern(regexp = "^(ACTIVE|INACTIVE)$", message = "Trạng thái chỉ có thể là ACTIVE hoặc INACTIVE")
+    private String status;
 }

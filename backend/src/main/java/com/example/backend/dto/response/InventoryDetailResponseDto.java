@@ -11,7 +11,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class InventoryDetailResponse {
+public class InventoryDetailResponseDto {
     private Long inventoryId;
     private Long variantId;
     private String sku;

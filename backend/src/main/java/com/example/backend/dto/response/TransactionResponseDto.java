@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TransactionResponse {
+public class TransactionResponseDto {
     private Long id;
     private Long variantId;
     private String sku;

@@ -1,8 +1,8 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.request.InventoryAdjustRequest;
-import com.example.backend.dto.response.InventoryDetailResponse;
-import com.example.backend.dto.response.InventoryResponse;
+import com.example.backend.dto.request.InventoryAdjustRequestDto;
+import com.example.backend.dto.response.InventoryDetailResponseDto;
+import com.example.backend.dto.response.InventoryResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.InventoryMapper;
@@ -23,7 +23,7 @@ public class InventoryService {
     private final UserRepository userRepository; // 1. Tiêm thêm UserRepository vào để sửa lỗi Tìm User
     private final InventoryMapper inventoryMapper;
 
-    public List<InventoryResponse> getCurrentInventory() {
+    public List<InventoryResponseDto> getCurrentInventory() {
         return inventoryRepository.findAll().stream().map(inventory -> {
             // ĐÃ SỬA: Lấy trực tiếp đối tượng Product từ Variant, bỏ hoàn toàn productRepository.findById()
             Product product = inventory.getVariant().getProduct();
@@ -34,7 +34,7 @@ public class InventoryService {
         }).collect(Collectors.toList());
     }
 
-    public InventoryDetailResponse getInventoryByVariantId(Long variantId) {
+    public InventoryDetailResponseDto getInventoryByVariantId(Long variantId) {
         Inventory inventory = inventoryRepository.findInventoryDetailByVariantId(variantId)
                 .orElseThrow(() -> new InvalidException(ErrorCode.INVENTORY_NOT_FOUND));
 
@@ -44,7 +44,7 @@ public class InventoryService {
     }
 
     @Transactional
-    public InventoryResponse adjustInventory(InventoryAdjustRequest request) {
+    public InventoryResponseDto adjustInventory(InventoryAdjustRequestDto request) {
         Inventory inventory = inventoryRepository.findByVariantId(request.getVariantId())
                 .orElseThrow(() -> new InvalidException(ErrorCode.INVENTORY_NOT_FOUND));
 

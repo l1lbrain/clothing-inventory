@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -12,14 +13,19 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class InventoryResponse {
+public class VariantResponseDto {
     private Long id;
-    private Long variantId;
+    private Long productId;
     private String sku;
-    private Integer quantityOnHand; // Số lượng thực tế trong kho hiện tại
+    private BigDecimal purchasePrice;
+    private BigDecimal salePrice;
+    private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Kèm theo thuộc tính động để thủ kho nhìn là biết sản phẩm nào cụ thể
+    /**
+     * Bản đồ thuộc tính động kết hợp từ tên (Product) và giá trị (Variant)
+     * Ví dụ khi trả về: { "Màu sắc": "Đen", "Kích thước": "L" }
+     */
     private Map<String, String> attributes;
 }

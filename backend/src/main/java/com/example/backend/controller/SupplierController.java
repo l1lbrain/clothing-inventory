@@ -1,6 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.SupplierRequest;
+import com.example.backend.dto.request.SupplierRequestDto;
 import com.example.backend.dto.response.SupplierResponseDto;
 import com.example.backend.service.SupplierService;
 import jakarta.validation.Valid;
@@ -23,7 +23,7 @@ public class SupplierController {
     }
 
     @PostMapping
-    public ResponseEntity<SupplierResponseDto> createSupplier(@Valid @RequestBody SupplierRequest request) {
+    public ResponseEntity<SupplierResponseDto> createSupplier(@Valid @RequestBody SupplierRequestDto request) {
         return ResponseEntity.ok(supplierService.createSupplier(request));
     }
 }

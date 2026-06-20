@@ -1,6 +1,6 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.request.CategoryRequest;
+import com.example.backend.dto.request.CategoryRequestDto;
 import com.example.backend.dto.response.CategoryResponseDto;
 import com.example.backend.mapper.CategoryMapper;
 import com.example.backend.model.Category;
@@ -24,7 +24,7 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
-    public CategoryResponseDto createCategory(CategoryRequest request) {
+    public CategoryResponseDto createCategory(CategoryRequestDto request) {
         Category category = categoryMapper.toEntity(request);
         category.setStatus("ACTIVE"); // Default status
         Category savedCategory = categoryRepository.save(category);

@@ -1,6 +1,6 @@
 package com.example.backend.mapper;
 
-import com.example.backend.dto.response.VariantResponse;
+import com.example.backend.dto.response.VariantResponseDto;
 import com.example.backend.model.Product;
 import com.example.backend.model.ProductVariant;
 import org.mapstruct.Mapper;
@@ -15,7 +15,7 @@ public interface ProductVariantMapper {
     @Mapping(target = "createdAt", source = "variant.createdAt")
     @Mapping(target = "updatedAt", source = "variant.updatedAt")
     @Mapping(target = "attributes", expression = "java(buildAttributes(product.getOption1Name(), variant.getOption1Value(), product.getOption2Name(), variant.getOption2Value(), product.getOption3Name(), variant.getOption3Value()))")
-    VariantResponse toResponse(ProductVariant variant, Product product);
+    VariantResponseDto toResponse(ProductVariant variant, Product product);
 
     // Hàm bổ trợ gom Map thuộc tính động dùng chung cho MapStruct
     default Map<String, String> buildAttributes(String n1, String v1, String n2, String v2, String n3, String v3) {
