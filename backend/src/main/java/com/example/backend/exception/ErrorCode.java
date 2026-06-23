@@ -20,7 +20,10 @@ public enum ErrorCode {
     SKU_ALREADY_EXISTS(400, "SKU already exists in the system"),
     VARIANT_NOT_FOUND(404, "Product variant not found"),
     INVENTORY_NOT_FOUND(404, "Inventory data not found for this variant"),
-    INSUFFICIENT_STOCK(400, "Insufficient stock to perform this operation");
+    INSUFFICIENT_STOCK(400, "Insufficient stock to perform this operation"),
+    PURCHASE_ORDER_NOT_FOUND(404, "Purchase order not found"),
+    CONFLICT_PURCHASE_ORDER_CODE(409, "Purchase order code already exists"),
+    INVALID_PURCHASE_ORDER_STATUS_TRANSITION(400, "Invalid purchase order status transition");
 
     private final int status;
     private final String message;
