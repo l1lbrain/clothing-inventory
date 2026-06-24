@@ -8,27 +8,26 @@ import lombok.Data;
 @Data
 public class SupplierRequestDto {
 
-    @NotBlank(message = "Supplier code is required")
-    @Size(max = 50, message = "Supplier code must be at most 50 characters")
+    @Size(max = 50, message = "Supplier code cannot exceed 50 characters")
     private String code;
 
-    @NotBlank(message = "Supplier name is required")
-    @Size(max = 255, message = "Supplier name must be at most 255 characters")
+    @NotBlank(message = "Supplier name cannot be blank")
+    @Size(max = 255, message = "Supplier name cannot exceed 255 characters")
     private String name;
 
-    @Size(max = 255, message = "Contact person name must be at most 255 characters")
+    @Size(max = 255, message = "Contact person name cannot exceed 255 characters")
     private String contactPerson;
 
-    @Size(max = 20, message = "Phone number must be at most 20 characters")
+    @Size(max = 20, message = "Phone number cannot exceed 20 characters")
     private String phone;
 
     @Email(message = "Invalid email format")
-    @Size(max = 255, message = "Email must be at most 255 characters")
+    @Size(max = 255, message = "Email cannot exceed 255 characters")
     private String email;
 
     private String address;
 
-    @Size(max = 50, message = "Tax code must be at most 50 characters")
+    @Size(max = 50, message = "Tax code cannot exceed 50 characters")
     private String taxCode;
 
     private String note;

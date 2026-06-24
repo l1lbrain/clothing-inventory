@@ -6,13 +6,13 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.CategoryMapper;
 import com.example.backend.model.Category;
+import com.example.backend.model.enums.Status;
 import com.example.backend.repository.CategoryRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +24,7 @@ public class CategoryService {
     public List<CategoryResponseDto> getAllCategories() {
         return categoryRepository.findAll().stream()
                 .map(categoryMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public CategoryResponseDto getCategoryById(Long id) {
@@ -39,7 +39,7 @@ public class CategoryService {
         }
 
         Category category = categoryMapper.toEntity(request);
-        category.setStatus("ACTIVE");
+        category.setStatus(Status.ACTIVE);
         Category savedCategory = categoryRepository.save(category);
         return categoryMapper.toResponse(savedCategory);
     }

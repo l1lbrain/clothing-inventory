@@ -22,7 +22,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: 'fi fi-rr-file-invoice',
       },
       {
-        label: 'Thanh toán',
+        label: 'Thanh toán nhà cung cấp',
         path: ROUTES.COORDINATOR_PAYMENT,
         icon: 'fi fi-rr-credit-card',
       },

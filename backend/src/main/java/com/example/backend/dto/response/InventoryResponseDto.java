@@ -16,10 +16,8 @@ public class InventoryResponseDto {
     private Long id;
     private Long variantId;
     private String sku;
-    private Integer quantityOnHand; // Số lượng thực tế trong kho hiện tại
+    private Integer quantityOnHand;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    // Kèm theo thuộc tính động để thủ kho nhìn là biết sản phẩm nào cụ thể
     private Map<String, String> attributes;
 }

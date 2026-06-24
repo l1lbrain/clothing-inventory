@@ -1,7 +1,11 @@
 package com.example.backend.repository;
 
 import com.example.backend.model.ProductVariant;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,12 +14,14 @@ import java.util.Optional;
 @Repository
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
 
-    // Tìm kiếm biến thể bằng mã SKU duy nhất
     Optional<ProductVariant> findBySku(String sku);
 
-    // Kiểm tra xem mã SKU này đã tồn tại trong hệ thống chưa (Phục vụ cho hàm Create)
     boolean existsBySku(String sku);
 
-    // Lấy danh sách các biến thể thuộc một sản phẩm gốc (Product) cha
     List<ProductVariant> findByProductId(Long productId);
+
+    @Query("SELECT pv FROM ProductVariant pv JOIN pv.product p WHERE " +
+            "LOWER(pv.sku) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<ProductVariant> search(@Param("keyword") String keyword, Pageable pageable);
 }

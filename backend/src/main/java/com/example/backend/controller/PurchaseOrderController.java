@@ -1,15 +1,16 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.PurchaseOrderRequestDto;
-import com.example.backend.dto.request.PurchaseOrderStatusUpdateDto;
+import com.example.backend.dto.request.PurchaseOrderStatusUpdateRequestDto;
+import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.PurchaseOrderResponseDto;
 import com.example.backend.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/purchase-orders")
@@ -19,8 +20,11 @@ public class PurchaseOrderController {
     private final PurchaseOrderService purchaseOrderService;
 
     @GetMapping
-    public ResponseEntity<List<PurchaseOrderResponseDto>> getAllPurchaseOrders() {
-        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders());
+    public ResponseEntity<PageResponseDto<PurchaseOrderResponseDto>> getAllPurchaseOrders(
+            @RequestParam(name = "page", defaultValue = "1") int pageNumber,
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, 10);
+        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(keyword, pageable));
     }
 
     @GetMapping("/{id}")
@@ -37,7 +41,7 @@ public class PurchaseOrderController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<PurchaseOrderResponseDto> updateStatus(
             @PathVariable Long id,
-            @Valid @RequestBody PurchaseOrderStatusUpdateDto request) {
+            @Valid @RequestBody PurchaseOrderStatusUpdateRequestDto request) {
         return ResponseEntity.ok(purchaseOrderService.updateStatus(id, request));
     }
 }

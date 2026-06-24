@@ -26,9 +26,6 @@ public class Role {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 20)
-    private String status = "ACTIVE";
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

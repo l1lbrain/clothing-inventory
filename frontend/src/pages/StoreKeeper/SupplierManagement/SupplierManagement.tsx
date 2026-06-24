@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import type { Supplier, SupplierFormData } from '../../../types/supplier.types';
-import { useSearch } from '../../../hooks/useSearch';
 import { Table } from '../../../components/Table/Table';
 import { Button } from '../../../components/Button/Button';
 import { Modal } from '../../../components/Modal/Modal';
@@ -25,19 +24,37 @@ const STATUS_MAP = { active: 'Hoạt động', inactive: 'Ngừng hoạt động
 
 type ModalMode = 'add' | 'edit' | 'detail' | null;
 
-const generateSupplierCode = (existingSuppliers: Supplier[]) => {
-  let maxNum = 0;
-  existingSuppliers.forEach((s) => {
-    const match = s.code.match(/\d+/);
-    if (match) {
-      const num = parseInt(match[0], 10);
-      if (num > maxNum) {
-        maxNum = num;
-      }
+const translateBackendError = (message: string): string => {
+  const msg = message.toLowerCase();
+  if (msg.includes('name already exists') || msg.includes('tên') || msg.includes('name')) {
+    if (msg.includes('exist') || msg.includes('tồn tại')) {
+      return 'Tên nhà cung cấp đã tồn tại trong hệ thống!';
     }
-  });
-  const nextNum = maxNum + 1;
-  return `NCC${String(nextNum).padStart(3, '0')}`;
+  }
+  if (msg.includes('tax code') || msg.includes('taxcode') || msg.includes('mst') || msg.includes('mã số thuế')) {
+    if (msg.includes('exist') || msg.includes('tồn tại')) {
+      return 'Mã số thuế đã tồn tại trong hệ thống!';
+    }
+  }
+  if (msg.includes('email')) {
+    if (msg.includes('exist') || msg.includes('tồn tại')) {
+      return 'Email đã tồn tại trong hệ thống!';
+    }
+  }
+  if (msg.includes('phone') || msg.includes('sđt') || msg.includes('số điện thoại')) {
+    if (msg.includes('exist') || msg.includes('tồn tại')) {
+      return 'Số điện thoại đã tồn tại trong hệ thống!';
+    }
+  }
+  if (msg.includes('code') || msg.includes('mã')) {
+    if (msg.includes('exist') || msg.includes('tồn tại')) {
+      return 'Mã nhà cung cấp đã tồn tại trong hệ thống!';
+    }
+  }
+  if (msg.includes('already exists') || msg.includes('tồn tại')) {
+    return 'Thông tin nhà cung cấp đã tồn tại trong hệ thống!';
+  }
+  return message;
 };
 
 export function SupplierManagement() {
@@ -54,16 +71,31 @@ export function SupplierManagement() {
   const [pageSize, setPageSize] = useState(10);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [backendSearchResults, setBackendSearchResults] = useState<Supplier[]>([]);
+  const [isBackendSearching, setIsBackendSearching] = useState(false);
+
   const { showToast } = useToast();
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
         setLoading(true);
-        const data = await getSuppliersPage(currentPage);
-        setSuppliers(data.items);
-        setTotalElements(data.totalElements);
-        setPageSize(data.pageSize);
+        if (!debouncedQuery) {
+          const data = await getSuppliersPage(currentPage);
+          setSuppliers(data.items);
+          setTotalElements(data.totalElements);
+          setPageSize(data.pageSize);
+        }
       } catch (err) {
         console.error('Failed to fetch suppliers from backend API:', err);
         showToast('Không thể tải danh sách nhà cung cấp từ máy chủ!', 'error');
@@ -74,11 +106,98 @@ export function SupplierManagement() {
       }
     };
     fetchSuppliers();
-  }, [currentPage, refreshTrigger, showToast]);
+  }, [currentPage, refreshTrigger, showToast, debouncedQuery]);
+
+  const [prevQuery, setPrevQuery] = useState('');
+  if (debouncedQuery !== prevQuery) {
+    setPrevQuery(debouncedQuery);
+    setBackendSearchResults([]);
+  }
+
+  // Hybrid search logic to trigger backend queries when local results are empty
+  useEffect(() => {
+    if (!debouncedQuery.trim()) {
+      return;
+    }
+
+    const lowerQuery = debouncedQuery.toLowerCase().trim();
+    const localMatches = suppliers.filter(s =>
+      s.code.toLowerCase().includes(lowerQuery) ||
+      s.companyName.toLowerCase().includes(lowerQuery) ||
+      s.representative.toLowerCase().includes(lowerQuery) ||
+      s.contactPerson.toLowerCase().includes(lowerQuery) ||
+      s.email.toLowerCase().includes(lowerQuery) ||
+      (s.phone && s.phone.includes(lowerQuery))
+    );
+
+    if (localMatches.length === 0) {
+      const performBackendSearch = async () => {
+        try {
+          setIsBackendSearching(true);
+          const data = await getSuppliersPage(1, debouncedQuery);
+          setBackendSearchResults(data.items);
+          setTotalElements(data.totalElements);
+        } catch (err) {
+          console.error('Backend search failed:', err);
+          setBackendSearchResults([]);
+        } finally {
+          setIsBackendSearching(false);
+        }
+      };
+      performBackendSearch();
+    }
+  }, [debouncedQuery, suppliers]);
+
+  // Derived state: filtered suppliers
+  const displaySuppliers = (() => {
+    if (!debouncedQuery.trim()) {
+      return suppliers;
+    }
+
+    const lowerQuery = debouncedQuery.toLowerCase().trim();
+    // 1. Search locally first
+    const localMatches = suppliers.filter(s =>
+      s.code.toLowerCase().includes(lowerQuery) ||
+      s.companyName.toLowerCase().includes(lowerQuery) ||
+      s.representative.toLowerCase().includes(lowerQuery) ||
+      s.contactPerson.toLowerCase().includes(lowerQuery) ||
+      s.email.toLowerCase().includes(lowerQuery) ||
+      (s.phone && s.phone.includes(lowerQuery))
+    );
+
+    if (localMatches.length > 0) {
+      return localMatches;
+    }
+
+    // 2. If no local matches, return backend results
+    return backendSearchResults;
+  })();
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
 
-  const { query, setQuery, filteredItems } = useSearch(suppliers, ['code', 'companyName', 'contactPerson', 'email']);
+  const isFormUnchanged = () => {
+    if (!selectedSupplier) return true;
+    return (
+      form.companyName === selectedSupplier.companyName &&
+      form.taxCode === selectedSupplier.taxCode &&
+      form.representative === selectedSupplier.representative &&
+      form.phone === selectedSupplier.phone &&
+      form.email === selectedSupplier.email &&
+      form.address === selectedSupplier.address &&
+      form.note === (selectedSupplier.note || '')
+    );
+  };
+
+  const isFormInvalidForAdd = () => {
+    return (
+      !form.companyName ||
+      !form.taxCode ||
+      !form.representative ||
+      !form.phone ||
+      !form.email ||
+      !form.address
+    );
+  };
 
   const openAdd = () => {
     setForm(INITIAL_FORM);
@@ -134,15 +253,15 @@ export function SupplierManagement() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     try {
-      const generatedCode = generateSupplierCode(suppliers);
-      await createSupplier(form, generatedCode);
+      await createSupplier(form);
       showToast('Thêm nhà cung cấp mới thành công!', 'success');
       closeModal();
       setCurrentPage(1);
       triggerRefresh();
     } catch (err) {
       console.error('Failed to create supplier:', err);
-      showToast('Không thể tạo nhà cung cấp. Vui lòng thử lại!', 'error');
+      const errMsg = err instanceof Error ? err.message : 'Không thể tạo nhà cung cấp. Vui lòng thử lại!';
+      showToast(translateBackendError(errMsg), 'error');
     }
   };
 
@@ -185,7 +304,8 @@ export function SupplierManagement() {
       triggerRefresh();
     } catch (err) {
       console.error('Lỗi khi cập nhật nhà cung cấp:', err);
-      showToast('Không thể cập nhật nhà cung cấp. Vui lòng thử lại!', 'error');
+      const errMsg = err instanceof Error ? err.message : 'Không thể cập nhật nhà cung cấp. Vui lòng thử lại!';
+      showToast(translateBackendError(errMsg), 'error');
     }
   };
 
@@ -207,13 +327,13 @@ export function SupplierManagement() {
   };
 
   const columns: TableColumn<Supplier>[] = [
-    { key: 'code', label: 'Mã NCC', width: '110px' },
+    { key: 'code', label: 'Mã NCC', width: '165px' },
     { key: 'companyName', label: 'Tên NCC' },
     { key: 'contactPerson', label: 'Người liên hệ' },
-    { key: 'phone', label: 'Số điện thoại', width: '130px' },
+    { key: 'phone', label: 'Số điện thoại', width: '135px' },
     { key: 'email', label: 'Email' },
     {
-      key: 'status', label: 'Trạng thái', width: '130px', align: 'center',
+      key: 'status', label: 'Trạng thái', width: '140px', align: 'center',
       render: (val) => (
         <span className={[styles.badge, val === 'active' ? styles.active : styles.inactive].join(' ')}>
           {STATUS_MAP[val as keyof typeof STATUS_MAP]}
@@ -260,7 +380,7 @@ export function SupplierManagement() {
         <div className={styles.header}>
           <div>
             <h2 className={styles.title}>Quản lý nhà cung cấp</h2>
-            <p className={styles.subtitle}>{filteredItems.length} nhà cung cấp</p>
+            <p className={styles.subtitle}>{displaySuppliers.length} nhà cung cấp</p>
           </div>
           <Button icon="fi fi-rr-add" onClick={openAdd} id="add-supplier-btn">Thêm mới</Button>
         </div>
@@ -271,20 +391,20 @@ export function SupplierManagement() {
             actions={
               <SearchBox
                 placeholder="Tìm theo tên, mã, email..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onClear={() => setQuery('')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onClear={() => setSearchQuery('')}
               />
             }
           />
           <CardBody className={styles.tableBody}>
-            {loading ? (
+            {loading || isBackendSearching ? (
               <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-subtext)' }}>
                 Đang tải dữ liệu nhà cung cấp...
               </div>
             ) : (
               <>
-                <Table columns={columns} data={filteredItems} rowKey="id" emptyText="Không tìm thấy nhà cung cấp" />
+                <Table columns={columns} data={displaySuppliers} rowKey="id" emptyText="Không tìm thấy nhà cung cấp" />
                 <div className={styles.paginationWrap}>
                   <Pagination
                     pagination={{
@@ -305,7 +425,7 @@ export function SupplierManagement() {
         {renderForm()}
         <div className={styles.modalActions}>
           <Button variant="secondary" onClick={closeModal}>Hủy</Button>
-          <Button onClick={handleAdd} icon="fi fi-rr-check">Lưu nhà cung cấp</Button>
+          <Button onClick={handleAdd} icon="fi fi-rr-check" disabled={isFormInvalidForAdd()}>Lưu nhà cung cấp</Button>
         </div>
       </Modal>
 
@@ -313,11 +433,11 @@ export function SupplierManagement() {
         {renderForm()}
         <div className={styles.modalActions}>
           <Button variant="secondary" onClick={closeModal}>Hủy</Button>
-          <Button onClick={handleEdit} icon="fi fi-rr-check">Lưu thay đổi</Button>
+          <Button onClick={handleEdit} icon="fi fi-rr-check" disabled={isFormUnchanged()}>Lưu thay đổi</Button>
         </div>
       </Modal>
 
-      <Modal isOpen={modalMode === 'detail'} onClose={closeModal} title="Chi tiết nhà cung cấp">
+      <Modal isOpen={modalMode === 'detail'} onClose={closeModal} title="Chi tiết nhà cung cấp" size="lg">
         {selectedSupplier && (
           <>
             <div className={styles.detail}>
@@ -329,17 +449,26 @@ export function SupplierManagement() {
                 'Người liên hệ': selectedSupplier.contactPerson,
                 'Số điện thoại': selectedSupplier.phone,
                 'Email': selectedSupplier.email,
+                'Trạng thái': STATUS_MAP[selectedSupplier.status],
                 'Địa chỉ': selectedSupplier.address,
                 'Ghi chú': selectedSupplier.note || '—',
                 'Ngày thêm': formatDateTime(selectedSupplier.createdAt),
                 'Ngày cập nhật': formatDateTime(selectedSupplier.updatedAt || selectedSupplier.createdAt),
-                'Trạng thái': STATUS_MAP[selectedSupplier.status],
-              })).map(([k, v]) => (
-                <div key={k} className={styles.detailRow}>
-                  <span className={styles.detailKey}>{k}</span>
-                  <span className={styles.detailVal}>{v}</span>
-                </div>
-              ))}
+              })).map(([k, v]) => {
+                const isFullWidth = k === 'Địa chỉ' || k === 'Ghi chú';
+                return (
+                  <div key={k} className={[styles.detailRow, isFullWidth ? styles.detailRowFullWidth : ''].join(' ')}>
+                    <span className={styles.detailKey}>{k}</span>
+                    <span className={styles.detailVal}>
+                      {k === 'Trạng thái' ? (
+                        <span className={[styles.badge, v === 'Hoạt động' ? styles.active : styles.inactive].join(' ')}>
+                          {v}
+                        </span>
+                      ) : v}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <div className={styles.modalActions}>
               <Button variant="secondary" onClick={closeModal}>Đóng</Button>

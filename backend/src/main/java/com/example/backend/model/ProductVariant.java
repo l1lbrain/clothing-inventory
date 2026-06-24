@@ -1,5 +1,6 @@
 package com.example.backend.model;
 
+import com.example.backend.model.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -7,6 +8,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product_variants")
@@ -43,8 +46,18 @@ public class ProductVariant {
     @Column(name = "sale_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal salePrice = BigDecimal.ZERO;
 
+    @Column(name = "quantity_on_hand", nullable = false)
+    private Integer quantityOnHand = 0;
+
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status = "ACTIVE";
+    private Status status = Status.ACTIVE;
+
+    @OneToMany(mappedBy = "variant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PurchaseOrderDetail> purchaseOrderDetails = new ArrayList<>();
+
+    @OneToMany(mappedBy = "variant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InventoryTransaction> inventoryTransactions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

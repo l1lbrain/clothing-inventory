@@ -13,19 +13,19 @@ import java.util.List;
 @Data
 public class PurchaseOrderRequestDto {
 
-    @NotBlank(message = "Purchase order code is required")
-    @Size(max = 50, message = "Purchase order code must be at most 50 characters")
+    @NotBlank(message = "Purchase order code cannot be blank")
+    @Size(max = 50, message = "Purchase order code cannot exceed 50 characters")
     private String code;
 
-    @NotNull(message = "Supplier ID is required")
+    @NotNull(message = "Supplier ID cannot be null")
     private Long supplierId;
 
-    @NotNull(message = "Order date is required")
+    @NotNull(message = "Order date cannot be null")
     private LocalDateTime orderDate;
 
     private String note;
 
-    @NotEmpty(message = "Purchase order must have at least one detail item")
+    @NotEmpty(message = "Details cannot be empty")
     @Valid
     private List<PurchaseOrderDetailRequestDto> details;
 }

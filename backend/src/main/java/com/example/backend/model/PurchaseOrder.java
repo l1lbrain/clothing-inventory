@@ -1,5 +1,6 @@
 package com.example.backend.model;
 
+import com.example.backend.model.enums.PurchaseOrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -41,8 +42,9 @@ public class PurchaseOrder {
     @Column(name = "total_amount", precision = 15, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status = "DRAFT";
+    private PurchaseOrderStatus status = PurchaseOrderStatus.DRAFT;
 
     @Column(columnDefinition = "TEXT")
     private String note;

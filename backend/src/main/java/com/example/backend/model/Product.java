@@ -1,5 +1,6 @@
 package com.example.backend.model;
 
+import com.example.backend.model.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -47,8 +48,9 @@ public class Product {
     @Column(name = "option3_name", length = 100)
     private String option3Name;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status = "ACTIVE";
+    private Status status = Status.ACTIVE;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

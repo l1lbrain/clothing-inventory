@@ -7,6 +7,7 @@ import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.AuthMapper;
 import com.example.backend.model.Role;
 import com.example.backend.model.User;
+import com.example.backend.model.enums.Status;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.security.detail.UserDetailService;
@@ -54,7 +55,7 @@ public class AuthService {
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         User user = userRepository.findByUsername(login.getUsername()).orElseThrow(() -> new InvalidException(ErrorCode.ACCOUNT_NOT_FOUND));
 
-        if (user.getStatus().equals("INACTIVE")) throw new InvalidException(ErrorCode.INACTIVE);
+        if (user.getStatus() == Status.INACTIVE) throw new InvalidException(ErrorCode.INACTIVE);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String accessToken = jwtUtil.generateAccessToken(user.getUuid(), authentication);
         String refreshToken = jwtUtil.generateRefreshToken(user.getUuid(), authentication);
@@ -122,7 +123,7 @@ public class AuthService {
         }
         String uuid = jwt.getSubject();
         User user = userRepository.findByUuid(uuid).orElseThrow(() -> new InvalidException(ErrorCode.ACCOUNT_NOT_FOUND));
-        if (user.getStatus().equals("INACTIVE")) throw new InvalidException(ErrorCode.INACTIVE);
+        if (user.getStatus() == Status.INACTIVE) throw new InvalidException(ErrorCode.INACTIVE);
         UserDetails userDetails = userDetailService.loadUserByUsername(user.getUsername());
         Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         AuthResponseDto.RefreshToken accessToken = new AuthResponseDto.RefreshToken();

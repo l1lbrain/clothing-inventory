@@ -1,5 +1,6 @@
 package com.example.backend.model;
 
+import com.example.backend.model.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -26,8 +27,9 @@ public class PaymentMethod {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String status = "ACTIVE";
+    private Status status = Status.ACTIVE;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

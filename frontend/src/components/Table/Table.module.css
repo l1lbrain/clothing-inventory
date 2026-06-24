@@ -81,3 +81,10 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.ellipsisCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

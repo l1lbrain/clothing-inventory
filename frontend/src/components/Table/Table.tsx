@@ -50,17 +50,21 @@ export function Table<T>({ columns, data, rowKey, emptyText = 'Không có dữ l
           ) : (
             data.map((row) => (
               <tr key={String(row[rowKey])} className={styles.tr}>
-                {columns.map((col) => (
-                  <td
-                    key={String(col.key)}
-                    className={styles.td}
-                    data-align={col.align ?? 'left'}
-                  >
-                    {col.render
-                      ? col.render(row[col.key as keyof T] as unknown, row) as ReactNode
-                      : String(row[col.key as keyof T] ?? '—')}
-                  </td>
-                ))}
+                {columns.map((col) => {
+                  const cellValue = row[col.key as keyof T] ?? '—';
+                  return (
+                    <td
+                      key={String(col.key)}
+                      className={[styles.td, !col.render ? styles.ellipsisCell : ''].join(' ')}
+                      data-align={col.align ?? 'left'}
+                      title={!col.render && cellValue !== '—' ? String(cellValue) : undefined}
+                    >
+                      {col.render
+                        ? col.render(row[col.key as keyof T] as unknown, row) as ReactNode
+                        : String(cellValue)}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           )}

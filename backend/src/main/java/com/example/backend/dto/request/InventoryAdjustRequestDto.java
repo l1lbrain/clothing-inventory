@@ -12,15 +12,14 @@ import lombok.NoArgsConstructor;
 @Builder
 public class InventoryAdjustRequestDto {
 
-    @NotNull(message = "ID biến thể không được để trống")
+    @NotNull(message = "Variant ID cannot be null")
     private Long variantId;
 
-    @NotNull(message = "Số lượng thay đổi không được để trống")
-    // Lưu ý: Không dùng @Min(0) ở đây vì số lượng có thể âm (khi xuất kho hoặc làm hao hụt kho)
+    @NotNull(message = "Adjust quantity cannot be null")
     private Integer adjustQuantity;
 
     private String note;
 
-    @NotNull(message = "ID người thực hiện không được để trống")
+    @NotNull(message = "User ID cannot be null")
     private Long userId;
 }

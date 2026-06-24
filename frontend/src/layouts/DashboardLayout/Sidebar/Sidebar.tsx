@@ -46,8 +46,17 @@ export function Sidebar({ collapsed = false, user: propUser }: SidebarProps) {
               <span className={styles.groupLabel}>{group.groupLabel}</span>
             )}
             {group.items.map((item) => {
+              const hasMoreSpecificMatch = NAV_GROUPS.some(g =>
+                g.items.some(otherItem =>
+                  otherItem.path &&
+                  otherItem.path !== item.path &&
+                  otherItem.path.length > (item.path?.length ?? 0) &&
+                  (location.pathname === otherItem.path || location.pathname.startsWith(otherItem.path + '/'))
+                )
+              );
+
               const isActive = item.path
-                ? location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+                ? (location.pathname === item.path || location.pathname.startsWith(item.path + '/')) && !hasMoreSpecificMatch
                 : false;
 
               return (

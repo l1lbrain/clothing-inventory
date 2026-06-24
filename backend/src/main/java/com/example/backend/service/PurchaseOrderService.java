@@ -2,34 +2,29 @@ package com.example.backend.service;
 
 import com.example.backend.dto.request.PurchaseOrderDetailRequestDto;
 import com.example.backend.dto.request.PurchaseOrderRequestDto;
-import com.example.backend.dto.request.PurchaseOrderStatusUpdateDto;
-import com.example.backend.dto.response.PurchaseOrderDetailResponseDto;
+import com.example.backend.dto.request.PurchaseOrderStatusUpdateRequestDto;
+import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.PurchaseOrderResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.PurchaseOrderDetailMapper;
 import com.example.backend.mapper.PurchaseOrderMapper;
-import com.example.backend.model.PurchaseOrder;
-import com.example.backend.model.PurchaseOrderDetail;
-import com.example.backend.model.ProductVariant;
-import com.example.backend.model.Supplier;
-import com.example.backend.model.User;
+import com.example.backend.model.*;
 import com.example.backend.model.enums.PurchaseOrderStatus;
-import com.example.backend.repository.PurchaseOrderDetailRepository;
-import com.example.backend.repository.PurchaseOrderRepository;
-import com.example.backend.repository.ProductVariantRepository;
-import com.example.backend.repository.SupplierRepository;
-import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,17 +38,15 @@ public class PurchaseOrderService {
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
 
-    public List<PurchaseOrderResponseDto> getAllPurchaseOrders() {
-        return purchaseOrderRepository.findAll().stream()
-                .map(order -> {
-                    PurchaseOrderResponseDto dto = purchaseOrderMapper.toResponse(order);
-                    List<PurchaseOrderDetail> details = purchaseOrderDetailRepository.findByPurchaseOrderId(order.getId());
-                    dto.setDetails(details.stream()
-                            .map(purchaseOrderDetailMapper::toResponse)
-                            .collect(Collectors.toList()));
-                    return dto;
-                })
-                .collect(Collectors.toList());
+    public PageResponseDto<PurchaseOrderResponseDto> getAllPurchaseOrders(String keyword, Pageable pageable) {
+        Page<PurchaseOrder> purchaseOrderPage;
+        if (StringUtils.hasText(keyword)) {
+            purchaseOrderPage = purchaseOrderRepository.search(keyword, pageable);
+        } else {
+            purchaseOrderPage = purchaseOrderRepository.findAll(pageable);
+        }
+        Page<PurchaseOrderResponseDto> dtoPage = purchaseOrderPage.map(this::buildResponseWithDetails);
+        return PageResponseDto.from(dtoPage);
     }
 
     public PurchaseOrderResponseDto getPurchaseOrderById(Long id) {
@@ -79,7 +72,7 @@ public class PurchaseOrderService {
                 .createdBy(currentUser)
                 .orderDate(request.getOrderDate())
                 .note(request.getNote())
-                .status(PurchaseOrderStatus.DRAFT.name())
+                .status(PurchaseOrderStatus.DRAFT)
                 .totalAmount(BigDecimal.ZERO)
                 .build();
 
@@ -99,28 +92,24 @@ public class PurchaseOrderService {
     }
 
     @Transactional
-    public PurchaseOrderResponseDto updateStatus(Long id, PurchaseOrderStatusUpdateDto request) {
+    public PurchaseOrderResponseDto updateStatus(Long id, PurchaseOrderStatusUpdateRequestDto request) {
         PurchaseOrder order = purchaseOrderRepository.findById(id)
                 .orElseThrow(() -> new InvalidException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
 
-        PurchaseOrderStatus currentStatus = PurchaseOrderStatus.valueOf(order.getStatus());
+        PurchaseOrderStatus currentStatus = order.getStatus();
         PurchaseOrderStatus newStatus = request.getStatus();
 
         validateStatusTransition(currentStatus, newStatus);
 
-        order.setStatus(newStatus.name());
+        order.setStatus(newStatus);
 
         if (newStatus == PurchaseOrderStatus.RECEIVED) {
-            order.setReceivedDate(LocalDateTime.now());
+            order.setReceivedDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         }
 
         PurchaseOrder updatedOrder = purchaseOrderRepository.save(order);
         return buildResponseWithDetails(updatedOrder);
     }
-
-    // -------------------------------------------------------------------------
-    // Helper methods
-    // -------------------------------------------------------------------------
 
     private void validateStatusTransition(PurchaseOrderStatus current, PurchaseOrderStatus next) {
         boolean valid = (current == PurchaseOrderStatus.DRAFT && next == PurchaseOrderStatus.PENDING)
@@ -154,7 +143,7 @@ public class PurchaseOrderService {
         List<PurchaseOrderDetail> details = purchaseOrderDetailRepository.findByPurchaseOrderId(order.getId());
         dto.setDetails(details.stream()
                 .map(purchaseOrderDetailMapper::toResponse)
-                .collect(Collectors.toList()));
+                .toList());
         return dto;
     }
 

@@ -2,29 +2,28 @@ package com.example.backend.service;
 
 import com.example.backend.dto.request.VariantCreateRequestDto;
 import com.example.backend.dto.request.VariantUpdateRequestDto;
+import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.VariantResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.ProductVariantMapper;
-import com.example.backend.model.Inventory;
 import com.example.backend.model.Product;
 import com.example.backend.model.ProductVariant;
-import com.example.backend.repository.InventoryRepository;
+import com.example.backend.model.enums.Status;
 import com.example.backend.repository.ProductRepository;
 import com.example.backend.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
 public class ProductVariantService {
 
     private final ProductVariantRepository variantRepository;
-    private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;
     private final ProductVariantMapper variantMapper;
 
@@ -34,40 +33,29 @@ public class ProductVariantService {
             throw new InvalidException(ErrorCode.SKU_ALREADY_EXISTS);
         }
 
-        // 1. Tìm thực thể Product từ Database bằng ID từ Request
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new InvalidException(ErrorCode.ACCOUNT_NOT_FOUND)); // Bạn có thể đổi thành PRODUCT_NOT_FOUND nếu có
+                .orElseThrow(() -> new InvalidException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // 2. SỬA LỖI BUILDER: Truyền cả đối tượng `product` vào thay vì truyền ID lẻ
         ProductVariant variant = ProductVariant.builder()
-                .product(product) // Đã sửa từ .productId(request.getProductId())
+                .product(product)
                 .sku(request.getSku())
                 .option1Value(request.getOption1Value())
                 .option2Value(request.getOption2Value())
                 .option3Value(request.getOption3Value())
                 .purchasePrice(request.getPurchasePrice())
                 .salePrice(request.getSalePrice())
-                .status("ACTIVE")
+                .quantityOnHand(0)
+                .status(Status.ACTIVE)
                 .build();
 
         ProductVariant savedVariant = variantRepository.save(variant);
-
-        Inventory inventory = Inventory.builder()
-                .variant(savedVariant)
-                .quantityOnHand(0)
-                .build();
-        inventoryRepository.save(inventory);
-
-        return variantMapper.toResponse(savedVariant, product);
+        return variantMapper.toResponse(savedVariant);
     }
 
     @Transactional
     public VariantResponseDto updateVariant(Long id, VariantUpdateRequestDto request) {
         ProductVariant variant = variantRepository.findById(id)
                 .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
-
-        // SỬA LỖI: Lấy trực tiếp đối tượng Product từ mối quan hệ JPA có sẵn trong variant
-        Product product = variant.getProduct();
 
         variant.setOption1Value(request.getOption1Value());
         variant.setOption2Value(request.getOption2Value());
@@ -76,26 +64,32 @@ public class ProductVariantService {
         variant.setSalePrice(request.getSalePrice());
         variant.setStatus(request.getStatus());
 
-        return variantMapper.toResponse(variantRepository.save(variant), product);
+        ProductVariant updatedVariant = variantRepository.save(variant);
+        return variantMapper.toResponse(updatedVariant);
     }
 
     public VariantResponseDto getVariantById(Long id) {
         ProductVariant variant = variantRepository.findById(id)
                 .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
-
-        // SỬA LỖI: Lấy trực tiếp đối tượng Product từ variant
-        Product product = variant.getProduct();
-        return variantMapper.toResponse(variant, product);
+        return variantMapper.toResponse(variant);
     }
 
-    public List<VariantResponseDto> getAllVariants() {
-        return variantRepository.findAll().stream().map(variant -> {
-            // SỬA LỖI: Tận dụng quan hệ Lazy loading để lấy Product, tránh loop Repo tìm ID liên tục
-            Product product = variant.getProduct();
-            if (product == null) {
-                product = new Product();
-            }
-            return variantMapper.toResponse(variant, product);
-        }).collect(Collectors.toList());
+    public PageResponseDto<VariantResponseDto> getAllVariants(String keyword, Pageable pageable) {
+        Page<ProductVariant> variantPage;
+        if (StringUtils.hasText(keyword)) {
+            variantPage = variantRepository.search(keyword, pageable);
+        } else {
+            variantPage = variantRepository.findAll(pageable);
+        }
+        Page<VariantResponseDto> dtoPage = variantPage.map(variantMapper::toResponse);
+        return PageResponseDto.from(dtoPage);
+    }
+
+    @Transactional
+    public void deleteVariant(Long id) {
+        if (!variantRepository.existsById(id)) {
+            throw new InvalidException(ErrorCode.VARIANT_NOT_FOUND);
+        }
+        variantRepository.deleteById(id);
     }
 }

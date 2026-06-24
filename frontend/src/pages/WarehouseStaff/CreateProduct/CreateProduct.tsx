@@ -24,10 +24,111 @@ const INITIAL: ProductFormData = {
   description: '', image: '',
 };
 
+interface ProductAttribute {
+  name: string;
+  values: string[];
+}
+
 export function CreateProduct() {
   const navigate = useNavigate();
   const [form, setForm] = useState<ProductFormData>(INITIAL);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [tagInputs, setTagInputs] = useState<string[]>(['', '', '']);
+
+  const addAttribute = () => {
+    if (attributes.length >= 3) return;
+    const defaultNames = ['Màu sắc', 'Kích thước', 'Chất liệu'];
+    const name = defaultNames.find(dName => !attributes.some(attr => attr.name === dName)) || '';
+    setAttributes(prev => [...prev, { name, values: [] }]);
+  };
+
+  const removeAttribute = (index: number) => {
+    setAttributes(prev => prev.filter((_, idx) => idx !== index));
+    setTagInputs(prev => {
+      const copy = [...prev];
+      copy.splice(index, 1);
+      copy.push(''); // Keep length 3
+      return copy;
+    });
+  };
+
+  const updateAttributeName = (index: number, name: string) => {
+    setAttributes(prev => prev.map((attr, idx) => {
+      if (idx !== index) return attr;
+      return { ...attr, name };
+    }));
+  };
+
+  const updateTagInput = (index: number, value: string) => {
+    setTagInputs(prev => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
+
+  const removeAttributeValue = (attrIndex: number, valIndex: number) => {
+    setAttributes(prev => prev.map((attr, idx) => {
+      if (idx !== attrIndex) return attr;
+      return {
+        ...attr,
+        values: attr.values.filter((_, vIdx) => vIdx !== valIndex)
+      };
+    }));
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, attrIndex: number) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const value = tagInputs[attrIndex].trim();
+      if (value) {
+        const newVals = value.split(',').map(v => v.trim()).filter(Boolean);
+        setAttributes(prev => prev.map((attr, idx) => {
+          if (idx !== attrIndex) return attr;
+          const filtered = newVals.filter(v => !attr.values.includes(v));
+          return {
+            ...attr,
+            values: [...attr.values, ...filtered]
+          };
+        }));
+        setTagInputs(prev => {
+          const copy = [...prev];
+          copy[attrIndex] = '';
+          return copy;
+        });
+      }
+    } else if (e.key === 'Backspace' && !tagInputs[attrIndex]) {
+      setAttributes(prev => prev.map((attr, idx) => {
+        if (idx !== attrIndex || attr.values.length === 0) return attr;
+        return {
+          ...attr,
+          values: attr.values.slice(0, -1)
+        };
+      }));
+    }
+  };
+
+  const handleTagBlur = (attrIndex: number) => {
+    const value = tagInputs[attrIndex].trim();
+    if (value) {
+      const newVals = value.split(',').map(v => v.trim()).filter(Boolean);
+      setAttributes(prev => prev.map((attr, idx) => {
+        if (idx !== attrIndex) return attr;
+        const filtered = newVals.filter(v => !attr.values.includes(v));
+        return {
+          ...attr,
+          values: [...attr.values, ...filtered]
+        };
+      }));
+      setTagInputs(prev => {
+        const copy = [...prev];
+        copy[attrIndex] = '';
+        return copy;
+      });
+    }
+  };
 
   const handleChange = (field: keyof ProductFormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -60,7 +161,7 @@ export function CreateProduct() {
 
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
-    console.log('Tạo sản phẩm:', form);
+    console.log('Tạo sản phẩm:', { ...form, attributes });
     navigate(ROUTES.WAREHOUSE_PRODUCTS);
   };
 
@@ -92,6 +193,73 @@ export function CreateProduct() {
                   <label htmlFor="description" className={styles.label}>Mô tả sản phẩm</label>
                   <textarea id="description" className={styles.textarea} rows={4} value={form.description} onChange={handleChange('description')} placeholder="Nhập mô tả sản phẩm..." maxLength={1000} />
                 </div>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardHeader
+                title="Thuộc tính sản phẩm"
+                actions={
+                  attributes.length < 3 ? (
+                    <Button variant="secondary" size="sm" icon="fi fi-rr-add" onClick={addAttribute} type="button">
+                      Thêm thuộc tính
+                    </Button>
+                  ) : undefined
+                }
+              />
+              <CardBody>
+                {attributes.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-subtext)', fontSize: 'var(--font-base)' }}>
+                    Sản phẩm này chưa có thuộc tính (VD: kích thước, màu sắc). Nhấp "Thêm thuộc tính" để cấu hình.
+                  </div>
+                ) : (
+                  <div className={styles.attrList}>
+                    {attributes.map((attr, index) => (
+                      <div key={index} className={styles.attrRow}>
+                        <div className={styles.attrNameGroup}>
+                          <Input
+                            id={`attr-name-${index}`}
+                            label={`Tên thuộc tính ${index + 1}`}
+                            placeholder="VD: Màu sắc, Kích thước..."
+                            value={attr.name}
+                            onChange={(e) => updateAttributeName(index, e.target.value)}
+                          />
+                        </div>
+                        <div className={styles.attrValueGroup}>
+                          <label className={styles.label}>Giá trị thuộc tính</label>
+                          <div 
+                            className={styles.tagsInputWrapper}
+                            onClick={() => document.getElementById(`attr-input-${index}`)?.focus()}
+                          >
+                            {attr.values.map((val, valIdx) => (
+                              <span key={valIdx} className={styles.tag}>
+                                {val}
+                                <button type="button" onClick={() => removeAttributeValue(index, valIdx)} aria-label="Xóa">
+                                  <i className="fi fi-rr-cross-small" />
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              id={`attr-input-${index}`}
+                              type="text"
+                              className={styles.tagInput}
+                              placeholder={attr.values.length === 0 ? "Nhập giá trị..." : "Thêm..."}
+                              value={tagInputs[index]}
+                              onChange={(e) => updateTagInput(index, e.target.value)}
+                              onKeyDown={(e) => handleTagKeyDown(e, index)}
+                              onBlur={() => handleTagBlur(index)}
+                            />
+                          </div>
+                        </div>
+                        <div className={styles.attrDeleteGroup}>
+                          <Button variant="danger" onClick={() => removeAttribute(index)} icon="fi fi-rr-trash" type="button">
+                            Xóa
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>

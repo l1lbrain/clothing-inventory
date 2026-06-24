@@ -5,8 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class PurchaseOrderStatusUpdateDto {
+public class PurchaseOrderStatusUpdateRequestDto {
 
-    @NotNull(message = "Status is required")
+    @NotNull(message = "Status cannot be null")
     private PurchaseOrderStatus status;
 }

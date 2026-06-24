@@ -1,17 +1,13 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.TransactionSearchRequestDto;
+import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.TransactionResponseDto;
 import com.example.backend.service.InventoryTransactionService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/inventory-transactions")
@@ -20,15 +16,21 @@ public class InventoryTransactionController {
 
     private final InventoryTransactionService transactionService;
 
-    @GetMapping("/search")
-    public ResponseEntity<List<TransactionResponseDto>> searchTransactions(@Valid TransactionSearchRequestDto searchRequest) {
-        List<TransactionResponseDto> response = transactionService.searchTransactions(searchRequest);
+    @GetMapping
+    public ResponseEntity<PageResponseDto<TransactionResponseDto>> getAllTransactions(
+            @RequestParam(name = "page", defaultValue = "1") int pageNumber,
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, 10);
+        PageResponseDto<TransactionResponseDto> response = transactionService.searchTransactions(keyword, pageable);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/variant/{variantId}")
-    public ResponseEntity<List<TransactionResponseDto>> getHistoryByVariantId(@PathVariable Long variantId) {
-        List<TransactionResponseDto> response = transactionService.getHistoryByVariantId(variantId);
+    public ResponseEntity<PageResponseDto<TransactionResponseDto>> getHistoryByVariantId(
+            @PathVariable Long variantId,
+            @RequestParam(name = "page", defaultValue = "1") int pageNumber) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, 10);
+        PageResponseDto<TransactionResponseDto> response = transactionService.getHistoryByVariantId(variantId, pageable);
         return ResponseEntity.ok(response);
     }
 }

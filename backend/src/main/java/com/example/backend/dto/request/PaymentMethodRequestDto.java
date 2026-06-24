@@ -7,11 +7,11 @@ import lombok.Data;
 @Data
 public class PaymentMethodRequestDto {
 
-    @NotBlank(message = "Payment method code is required")
-    @Size(max = 50, message = "Payment method code must be at most 50 characters")
+    @NotBlank(message = "Payment method code cannot be blank")
+    @Size(max = 50, message = "Payment method code cannot exceed 50 characters")
     private String code;
 
-    @NotBlank(message = "Payment method name is required")
-    @Size(max = 100, message = "Payment method name must be at most 100 characters")
+    @NotBlank(message = "Payment method name cannot be blank")
+    @Size(max = 100, message = "Payment method name cannot exceed 100 characters")
     private String name;
 }

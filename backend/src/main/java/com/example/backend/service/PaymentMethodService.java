@@ -4,6 +4,7 @@ import com.example.backend.dto.request.PaymentMethodRequestDto;
 import com.example.backend.dto.response.PaymentMethodResponseDto;
 import com.example.backend.mapper.PaymentMethodMapper;
 import com.example.backend.model.PaymentMethod;
+import com.example.backend.model.enums.Status;
 import com.example.backend.repository.PaymentMethodRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class PaymentMethodService {
 
     public PaymentMethodResponseDto createPaymentMethod(PaymentMethodRequestDto request) {
         PaymentMethod paymentMethod = paymentMethodMapper.toEntity(request);
-        paymentMethod.setStatus("ACTIVE"); // Default status
+        paymentMethod.setStatus(Status.ACTIVE);
         PaymentMethod savedPaymentMethod = paymentMethodRepository.save(paymentMethod);
         return paymentMethodMapper.toResponse(savedPaymentMethod);
     }

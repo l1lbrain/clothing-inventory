@@ -58,8 +58,11 @@ export function mapBackendSupplierToFrontend(s: BackendSupplierResponse): Suppli
   };
 }
 
-export async function getSuppliersPage(page: number): Promise<PaginatedSuppliers> {
-  const response = await apiFetch<ApiResponse<PaginatedSuppliersResponse>>(`/suppliers?page=${page}`);
+export async function getSuppliersPage(page: number, keyword?: string): Promise<PaginatedSuppliers> {
+  const url = keyword
+    ? `/suppliers?page=${page}&keyword=${encodeURIComponent(keyword)}`
+    : `/suppliers?page=${page}`;
+  const response = await apiFetch<ApiResponse<PaginatedSuppliersResponse>>(url);
   const data = response.data;
   return {
     items: data.items.map(mapBackendSupplierToFrontend),
@@ -70,9 +73,8 @@ export async function getSuppliersPage(page: number): Promise<PaginatedSuppliers
   };
 }
 
-export async function createSupplier(form: SupplierFormData, code: string): Promise<Supplier> {
+export async function createSupplier(form: SupplierFormData): Promise<Supplier> {
   const body = {
-    code,
     name: form.companyName,
     contactPerson: form.representative,
     phone: form.phone,
