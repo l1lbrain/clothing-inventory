@@ -1,6 +1,6 @@
-import { useState, useCallback, type ReactNode } from 'react';
-import { ToastContext, type ToastType } from './ToastContext';
-import styles from './Toast.module.css';
+import { useState, useCallback, type ReactNode } from "react";
+import { ToastContext, type ToastType } from "./ToastContext";
+import styles from "./Toast.module.css";
 
 interface Toast {
   id: string;
@@ -22,18 +22,22 @@ function ToastItem({
 }) {
   const getIcon = () => {
     switch (type) {
-      case 'success':
-        return 'fi fi-rr-check-circle';
-      case 'warning':
-        return 'fi fi-rr-exclamation';
-      case 'error':
-        return 'fi fi-rr-cross-circle';
+      case "success":
+        return "fi fi-rr-check-circle";
+      case "warning":
+        return "fi fi-rr-exclamation";
+      case "error":
+        return "fi fi-rr-cross-circle";
     }
   };
 
   return (
     <div
-      className={[styles.toast, styles[type], isExiting ? styles.exiting : ''].join(' ')}
+      className={[
+        styles.toast,
+        styles[type],
+        isExiting ? styles.exiting : "",
+      ].join(" ")}
       role="alert"
     >
       <div className={styles.icon}>
@@ -52,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t))
+      prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t)),
     );
 
     setTimeout(() => {
@@ -60,15 +64,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 300);
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = 'success') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    
-    setToasts((prev) => [...prev, { id, message, type, isExiting: false }]);
+  const showToast = useCallback(
+    (message: string, type: ToastType = "success") => {
+      const id = Math.random().toString(36).substring(2, 9);
 
-    setTimeout(() => {
-      removeToast(id);
-    }, 3000);
-  }, [removeToast]);
+      setToasts((prev) => [...prev, { id, message, type, isExiting: false }]);
+
+      setTimeout(() => {
+        removeToast(id);
+      }, 3000);
+    },
+    [removeToast],
+  );
 
   return (
     <ToastContext.Provider value={{ showToast }}>

@@ -1,8 +1,8 @@
-export type Status = 'active' | 'inactive';
+export type Status = "active" | "inactive";
 
-export type PaymentStatus = 'paid' | 'partial' | 'unpaid';
+export type PaymentStatus = "paid" | "partial" | "unpaid";
 
-export type PaymentMethod = 'cash' | 'transfer' | 'debt';
+export type PaymentMethod = "cash" | "transfer" | "debt";
 
 export interface PaginationState {
   page: number;
@@ -19,6 +19,6 @@ export interface TableColumn<T> {
   key: keyof T | string;
   label: string;
   width?: string;
-  align?: 'left' | 'center' | 'right';
+  align?: "left" | "center" | "right";
   render?: (value: unknown, row: T) => React.ReactNode;
 }

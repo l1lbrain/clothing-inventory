@@ -1,4 +1,4 @@
-import type { PaymentStatus, PaymentMethod } from './common.types';
+import type { PaymentStatus, PaymentMethod } from "./common.types";
 
 export interface ReceiptItem {
   id: string;

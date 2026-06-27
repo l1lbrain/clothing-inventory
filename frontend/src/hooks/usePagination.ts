@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import type { PaginationState } from '../types/common.types';
+import { useState, useMemo } from "react";
+import type { PaginationState } from "../types/common.types";
 
 interface UsePaginationReturn<T> {
   currentItems: T[];
@@ -8,7 +8,10 @@ interface UsePaginationReturn<T> {
   setPageSize: (size: number) => void;
 }
 
-export function usePagination<T>(items: T[], initialPageSize: number = 10): UsePaginationReturn<T> {
+export function usePagination<T>(
+  items: T[],
+  initialPageSize: number = 10,
+): UsePaginationReturn<T> {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSizeState] = useState(initialPageSize);
 

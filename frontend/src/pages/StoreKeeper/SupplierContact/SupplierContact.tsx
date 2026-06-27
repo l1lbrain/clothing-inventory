@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Card, CardBody } from '../../../components/Card/Card';
-import { Button } from '../../../components/Button/Button';
-import { useToast } from '../../../components/Toast/ToastContext';
-import { getSuppliersPage } from '../../../services/supplier';
-import type { Supplier } from '../../../types/supplier.types';
-import styles from './SupplierContact.module.css';
+import { useState, useEffect } from "react";
+import { Card, CardBody } from "../../../components/Card/Card";
+import { Button } from "../../../components/Button/Button";
+import { useToast } from "../../../components/Toast/ToastContext";
+import { getSuppliersPage } from "../../../services/supplier";
+import type { Supplier } from "../../../types/supplier.types";
+import styles from "./SupplierContact.module.css";
 
 export function SupplierContact() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -16,13 +16,13 @@ export function SupplierContact() {
         const data = await getSuppliersPage(1);
         setSuppliers(data.items);
       } catch (err) {
-        console.error('Failed to fetch contact suppliers:', err);
+        console.error("Failed to fetch contact suppliers:", err);
       }
     };
     fetchSuppliers();
   }, []);
 
-  const activeSuppliers = suppliers.filter((s) => s.status === 'active');
+  const activeSuppliers = suppliers.filter((s) => s.status === "active");
 
   return (
     <section>
@@ -30,7 +30,9 @@ export function SupplierContact() {
         <div className={styles.header}>
           <div>
             <h2 className={styles.title}>Liên hệ đặt hàng</h2>
-            <p className={styles.subtitle}>{activeSuppliers.length} nhà cung cấp đang hoạt động</p>
+            <p className={styles.subtitle}>
+              {activeSuppliers.length} nhà cung cấp đang hoạt động
+            </p>
           </div>
         </div>
 
@@ -40,7 +42,9 @@ export function SupplierContact() {
               <CardBody>
                 <div className={styles.cardContent}>
                   <div>
-                    <h3 className={styles.companyName}>{supplier.companyName}</h3>
+                    <h3 className={styles.companyName}>
+                      {supplier.companyName}
+                    </h3>
                     <span className={styles.code}>{supplier.code}</span>
                   </div>
 
@@ -65,12 +69,18 @@ export function SupplierContact() {
                       size="sm"
                       icon="fi fi-rr-phone-call"
                       onClick={() => {
-                        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                        const isMobile =
+                          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                            navigator.userAgent,
+                          );
                         if (isMobile) {
                           window.location.href = `tel:${supplier.phone}`;
                         } else {
                           navigator.clipboard.writeText(supplier.phone);
-                          showToast(`Đã sao chép số điện thoại "${supplier.phone}" vào bộ nhớ tạm.`, 'success');
+                          showToast(
+                            `Đã sao chép số điện thoại "${supplier.phone}" vào bộ nhớ tạm.`,
+                            "success",
+                          );
                         }
                       }}
                     >

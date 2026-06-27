@@ -1,58 +1,90 @@
-import { useState, useEffect } from 'react';
-import type { Supplier, SupplierFormData } from '../../../types/supplier.types';
-import { Table } from '../../../components/Table/Table';
-import { Button } from '../../../components/Button/Button';
-import { Modal } from '../../../components/Modal/Modal';
-import { SearchBox } from '../../../components/SearchBox/SearchBox';
-import { Input } from '../../../components/Input/Input';
-import { Card, CardHeader, CardBody } from '../../../components/Card/Card';
-import { ConfirmDialog } from '../../../components/ConfirmDialog/ConfirmDialog';
-import { Pagination } from '../../../components/Pagination/Pagination';
-import type { TableColumn } from '../../../types/common.types';
-import { validate, isRequired, isEmail, isPhone } from '../../../utils/validators';
-import { useToast } from '../../../components/Toast/ToastContext';
-import { getSuppliersPage, createSupplier, deleteSupplier, updateSupplier, patchSupplier } from '../../../services/supplier';
-import { formatDateTime } from '../../../utils/formatters';
-import styles from './SupplierManagement.module.css';
+import { useState, useEffect } from "react";
+import type { Supplier, SupplierFormData } from "../../../types/supplier.types";
+import { Table } from "../../../components/Table/Table";
+import { Button } from "../../../components/Button/Button";
+import { Modal } from "../../../components/Modal/Modal";
+import { SearchBox } from "../../../components/SearchBox/SearchBox";
+import { Input } from "../../../components/Input/Input";
+import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
+import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
+import { Pagination } from "../../../components/Pagination/Pagination";
+import type { TableColumn } from "../../../types/common.types";
+import {
+  validate,
+  isRequired,
+  isEmail,
+  isPhone,
+} from "../../../utils/validators";
+import { useToast } from "../../../components/Toast/ToastContext";
+import {
+  getSuppliersPage,
+  createSupplier,
+  deleteSupplier,
+  updateSupplier,
+  patchSupplier,
+} from "../../../services/supplier";
+import { formatDateTime } from "../../../utils/formatters";
+import styles from "./SupplierManagement.module.css";
 
 const INITIAL_FORM: SupplierFormData = {
-  companyName: '', taxCode: '', representative: '',
-  address: '', email: '', phone: '', note: '',
+  companyName: "",
+  taxCode: "",
+  representative: "",
+  address: "",
+  email: "",
+  phone: "",
+  note: "",
 };
 
-const STATUS_MAP = { active: 'Hoạt động', inactive: 'Ngừng hoạt động' } as const;
+const STATUS_MAP = {
+  active: "Hoạt động",
+  inactive: "Ngừng hoạt động",
+} as const;
 
-type ModalMode = 'add' | 'edit' | 'detail' | null;
+type ModalMode = "add" | "edit" | "detail" | null;
 
 const translateBackendError = (message: string): string => {
   const msg = message.toLowerCase();
-  if (msg.includes('name already exists') || msg.includes('tên') || msg.includes('name')) {
-    if (msg.includes('exist') || msg.includes('tồn tại')) {
-      return 'Tên nhà cung cấp đã tồn tại trong hệ thống!';
+  if (
+    msg.includes("name already exists") ||
+    msg.includes("tên") ||
+    msg.includes("name")
+  ) {
+    if (msg.includes("exist") || msg.includes("tồn tại")) {
+      return "Tên nhà cung cấp đã tồn tại trong hệ thống!";
     }
   }
-  if (msg.includes('tax code') || msg.includes('taxcode') || msg.includes('mst') || msg.includes('mã số thuế')) {
-    if (msg.includes('exist') || msg.includes('tồn tại')) {
-      return 'Mã số thuế đã tồn tại trong hệ thống!';
+  if (
+    msg.includes("tax code") ||
+    msg.includes("taxcode") ||
+    msg.includes("mst") ||
+    msg.includes("mã số thuế")
+  ) {
+    if (msg.includes("exist") || msg.includes("tồn tại")) {
+      return "Mã số thuế đã tồn tại trong hệ thống!";
     }
   }
-  if (msg.includes('email')) {
-    if (msg.includes('exist') || msg.includes('tồn tại')) {
-      return 'Email đã tồn tại trong hệ thống!';
+  if (msg.includes("email")) {
+    if (msg.includes("exist") || msg.includes("tồn tại")) {
+      return "Email đã tồn tại trong hệ thống!";
     }
   }
-  if (msg.includes('phone') || msg.includes('sđt') || msg.includes('số điện thoại')) {
-    if (msg.includes('exist') || msg.includes('tồn tại')) {
-      return 'Số điện thoại đã tồn tại trong hệ thống!';
+  if (
+    msg.includes("phone") ||
+    msg.includes("sđt") ||
+    msg.includes("số điện thoại")
+  ) {
+    if (msg.includes("exist") || msg.includes("tồn tại")) {
+      return "Số điện thoại đã tồn tại trong hệ thống!";
     }
   }
-  if (msg.includes('code') || msg.includes('mã')) {
-    if (msg.includes('exist') || msg.includes('tồn tại')) {
-      return 'Mã nhà cung cấp đã tồn tại trong hệ thống!';
+  if (msg.includes("code") || msg.includes("mã")) {
+    if (msg.includes("exist") || msg.includes("tồn tại")) {
+      return "Mã nhà cung cấp đã tồn tại trong hệ thống!";
     }
   }
-  if (msg.includes('already exists') || msg.includes('tồn tại')) {
-    return 'Thông tin nhà cung cấp đã tồn tại trong hệ thống!';
+  if (msg.includes("already exists") || msg.includes("tồn tại")) {
+    return "Thông tin nhà cung cấp đã tồn tại trong hệ thống!";
   }
   return message;
 };
@@ -61,7 +93,9 @@ export function SupplierManagement() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null,
+  );
   const [form, setForm] = useState<SupplierFormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -71,14 +105,16 @@ export function SupplierManagement() {
   const [pageSize, setPageSize] = useState(10);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [backendSearchResults, setBackendSearchResults] = useState<Supplier[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [backendSearchResults, setBackendSearchResults] = useState<Supplier[]>(
+    [],
+  );
   const [isBackendSearching, setIsBackendSearching] = useState(false);
 
   const { showToast } = useToast();
 
-  // Debounce search query
+  // Debounce tìm kiếm
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -97,8 +133,8 @@ export function SupplierManagement() {
           setPageSize(data.pageSize);
         }
       } catch (err) {
-        console.error('Failed to fetch suppliers from backend API:', err);
-        showToast('Không thể tải danh sách nhà cung cấp từ máy chủ!', 'error');
+        console.error("Failed to fetch suppliers from backend API:", err);
+        showToast("Không thể tải danh sách nhà cung cấp từ máy chủ!", "error");
         setSuppliers([]);
         setTotalElements(0);
       } finally {
@@ -108,26 +144,27 @@ export function SupplierManagement() {
     fetchSuppliers();
   }, [currentPage, refreshTrigger, showToast, debouncedQuery]);
 
-  const [prevQuery, setPrevQuery] = useState('');
+  const [prevQuery, setPrevQuery] = useState("");
   if (debouncedQuery !== prevQuery) {
     setPrevQuery(debouncedQuery);
     setBackendSearchResults([]);
   }
 
-  // Hybrid search logic to trigger backend queries when local results are empty
+  // Tìm kiếm hybrid: local trước, backend sau
   useEffect(() => {
     if (!debouncedQuery.trim()) {
       return;
     }
 
     const lowerQuery = debouncedQuery.toLowerCase().trim();
-    const localMatches = suppliers.filter(s =>
-      s.code.toLowerCase().includes(lowerQuery) ||
-      s.companyName.toLowerCase().includes(lowerQuery) ||
-      s.representative.toLowerCase().includes(lowerQuery) ||
-      s.contactPerson.toLowerCase().includes(lowerQuery) ||
-      s.email.toLowerCase().includes(lowerQuery) ||
-      (s.phone && s.phone.includes(lowerQuery))
+    const localMatches = suppliers.filter(
+      (s) =>
+        s.code.toLowerCase().includes(lowerQuery) ||
+        s.companyName.toLowerCase().includes(lowerQuery) ||
+        s.representative.toLowerCase().includes(lowerQuery) ||
+        s.contactPerson.toLowerCase().includes(lowerQuery) ||
+        s.email.toLowerCase().includes(lowerQuery) ||
+        (s.phone && s.phone.includes(lowerQuery)),
     );
 
     if (localMatches.length === 0) {
@@ -138,7 +175,7 @@ export function SupplierManagement() {
           setBackendSearchResults(data.items);
           setTotalElements(data.totalElements);
         } catch (err) {
-          console.error('Backend search failed:', err);
+          console.error("Backend search failed:", err);
           setBackendSearchResults([]);
         } finally {
           setIsBackendSearching(false);
@@ -148,28 +185,29 @@ export function SupplierManagement() {
     }
   }, [debouncedQuery, suppliers]);
 
-  // Derived state: filtered suppliers
+  // Danh sách NCC đã lọc
   const displaySuppliers = (() => {
     if (!debouncedQuery.trim()) {
       return suppliers;
     }
 
     const lowerQuery = debouncedQuery.toLowerCase().trim();
-    // 1. Search locally first
-    const localMatches = suppliers.filter(s =>
-      s.code.toLowerCase().includes(lowerQuery) ||
-      s.companyName.toLowerCase().includes(lowerQuery) ||
-      s.representative.toLowerCase().includes(lowerQuery) ||
-      s.contactPerson.toLowerCase().includes(lowerQuery) ||
-      s.email.toLowerCase().includes(lowerQuery) ||
-      (s.phone && s.phone.includes(lowerQuery))
+    // 1. Tìm local
+    const localMatches = suppliers.filter(
+      (s) =>
+        s.code.toLowerCase().includes(lowerQuery) ||
+        s.companyName.toLowerCase().includes(lowerQuery) ||
+        s.representative.toLowerCase().includes(lowerQuery) ||
+        s.contactPerson.toLowerCase().includes(lowerQuery) ||
+        s.email.toLowerCase().includes(lowerQuery) ||
+        (s.phone && s.phone.includes(lowerQuery)),
     );
 
     if (localMatches.length > 0) {
       return localMatches;
     }
 
-    // 2. If no local matches, return backend results
+    // 2. Tìm qua API nếu local không có
     return backendSearchResults;
   })();
 
@@ -184,7 +222,7 @@ export function SupplierManagement() {
       form.phone === selectedSupplier.phone &&
       form.email === selectedSupplier.email &&
       form.address === selectedSupplier.address &&
-      form.note === (selectedSupplier.note || '')
+      form.note === (selectedSupplier.note || "")
     );
   };
 
@@ -203,7 +241,7 @@ export function SupplierManagement() {
     setForm(INITIAL_FORM);
     setErrors({});
     setSelectedSupplier(null);
-    setModalMode('add');
+    setModalMode("add");
   };
 
   const openEdit = (supplier: Supplier) => {
@@ -218,12 +256,12 @@ export function SupplierManagement() {
     });
     setErrors({});
     setSelectedSupplier(supplier);
-    setModalMode('edit');
+    setModalMode("edit");
   };
 
   const openDetail = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
-    setModalMode('detail');
+    setModalMode("detail");
   };
 
   const closeModal = () => {
@@ -232,10 +270,11 @@ export function SupplierManagement() {
     setErrors({});
   };
 
-  const handleChange = (field: keyof SupplierFormData) =>
+  const handleChange =
+    (field: keyof SupplierFormData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
-      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
+      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
     };
 
   const validateForm = () =>
@@ -250,35 +289,54 @@ export function SupplierManagement() {
 
   const handleAdd = async () => {
     const errs = validateForm();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
 
     try {
       await createSupplier(form);
-      showToast('Thêm nhà cung cấp mới thành công!', 'success');
+      showToast("Thêm nhà cung cấp mới thành công!", "success");
       closeModal();
       setCurrentPage(1);
       triggerRefresh();
     } catch (err) {
-      console.error('Failed to create supplier:', err);
-      const errMsg = err instanceof Error ? err.message : 'Không thể tạo nhà cung cấp. Vui lòng thử lại!';
-      showToast(translateBackendError(errMsg), 'error');
+      console.error("Failed to create supplier:", err);
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : "Không thể tạo nhà cung cấp. Vui lòng thử lại!";
+      showToast(translateBackendError(errMsg), "error");
     }
   };
 
   const handleEdit = async () => {
     const errs = validateForm();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
 
     if (!selectedSupplier) return;
 
-    const keys: (keyof SupplierFormData)[] = ['companyName', 'taxCode', 'representative', 'address', 'email', 'phone', 'note'];
+    const keys: (keyof SupplierFormData)[] = [
+      "companyName",
+      "taxCode",
+      "representative",
+      "address",
+      "email",
+      "phone",
+      "note",
+    ];
     const changedFields: Partial<SupplierFormData> = {};
     let changedCount = 0;
 
     keys.forEach((key) => {
-      const originalValue = selectedSupplier[key === 'representative' ? 'representative' : key] || '';
-      const currentValue = form[key] || '';
-      
+      const originalValue =
+        selectedSupplier[key === "representative" ? "representative" : key] ||
+        "";
+      const currentValue = form[key] || "";
+
       if (currentValue !== originalValue) {
         changedFields[key] = currentValue;
         changedCount++;
@@ -286,26 +344,29 @@ export function SupplierManagement() {
     });
 
     if (changedCount === 0) {
-      showToast('Không có thay đổi nào cần cập nhật!', 'warning');
+      showToast("Không có thay đổi nào cần cập nhật!", "warning");
       closeModal();
       return;
     }
 
     try {
       if (changedCount === keys.length) {
-        // Thay đổi toàn bộ các trường -> Dùng PUT
+        // Thay đổi toàn bộ -> Dùng PUT
         await updateSupplier(selectedSupplier.code, form);
       } else {
-        // Thay đổi một hoặc một vài trường -> Dùng PATCH
+        // Thay đổi một phần -> Dùng PATCH
         await patchSupplier(selectedSupplier.code, changedFields);
       }
-      showToast('Cập nhật thông tin nhà cung cấp thành công!', 'success');
+      showToast("Cập nhật thông tin nhà cung cấp thành công!", "success");
       closeModal();
       triggerRefresh();
     } catch (err) {
-      console.error('Lỗi khi cập nhật nhà cung cấp:', err);
-      const errMsg = err instanceof Error ? err.message : 'Không thể cập nhật nhà cung cấp. Vui lòng thử lại!';
-      showToast(translateBackendError(errMsg), 'error');
+      console.error("Lỗi khi cập nhật nhà cung cấp:", err);
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : "Không thể cập nhật nhà cung cấp. Vui lòng thử lại!";
+      showToast(translateBackendError(errMsg), "error");
     }
   };
 
@@ -316,36 +377,61 @@ export function SupplierManagement() {
 
     try {
       await deleteSupplier(target.code);
-      showToast('Xóa nhà cung cấp thành công!', 'success');
+      showToast("Xóa nhà cung cấp thành công!", "success");
       setDeleteId(null);
       triggerRefresh();
     } catch (err) {
-      console.error('Failed to delete supplier:', err);
-      showToast('Không thể xóa nhà cung cấp. Vui lòng thử lại!', 'error');
+      console.error("Failed to delete supplier:", err);
+      showToast("Không thể xóa nhà cung cấp. Vui lòng thử lại!", "error");
       setDeleteId(null);
     }
   };
 
   const columns: TableColumn<Supplier>[] = [
-    { key: 'code', label: 'Mã NCC', width: '165px' },
-    { key: 'companyName', label: 'Tên NCC' },
-    { key: 'contactPerson', label: 'Người liên hệ' },
-    { key: 'phone', label: 'Số điện thoại', width: '135px' },
-    { key: 'email', label: 'Email' },
+    { key: "code", label: "Mã NCC", width: "165px" },
+    { key: "companyName", label: "Tên NCC" },
+    { key: "contactPerson", label: "Người liên hệ" },
+    { key: "phone", label: "Số điện thoại", width: "135px" },
+    { key: "email", label: "Email" },
     {
-      key: 'status', label: 'Trạng thái', width: '140px', align: 'center',
+      key: "status",
+      label: "Trạng thái",
+      width: "140px",
+      align: "center",
       render: (val) => (
-        <span className={[styles.badge, val === 'active' ? styles.active : styles.inactive].join(' ')}>
+        <span
+          className={[
+            styles.badge,
+            val === "active" ? styles.active : styles.inactive,
+          ].join(" ")}
+        >
           {STATUS_MAP[val as keyof typeof STATUS_MAP]}
         </span>
       ),
     },
     {
-      key: 'id', label: 'Hành động', width: '160px', align: 'center',
+      key: "id",
+      label: "Hành động",
+      width: "160px",
+      align: "center",
       render: (_, row) => (
         <div className={styles.actions}>
-          <Button variant="ghost" size="sm" icon="fi fi-rr-eye" onClick={() => openDetail(row)}>Xem</Button>
-          <Button variant="danger" size="sm" icon="fi fi-rr-trash" onClick={() => setDeleteId(row.id)}>Xóa</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="fi fi-rr-eye"
+            onClick={() => openDetail(row)}
+          >
+            Xem
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            icon="fi fi-rr-trash"
+            onClick={() => setDeleteId(row.id)}
+          >
+            Xóa
+          </Button>
         </div>
       ),
     },
@@ -356,20 +442,79 @@ export function SupplierManagement() {
   const renderForm = () => (
     <div className={styles.form}>
       <div className={styles.formRow}>
-        <Input id="companyName" label="Tên công ty" required value={form.companyName} onChange={handleChange('companyName')} error={errors.companyName} placeholder="Nhập tên công ty" />
-        <Input id="taxCode" label="Mã số thuế" required value={form.taxCode} onChange={handleChange('taxCode')} error={errors.taxCode} placeholder="Nhập mã số thuế" />
+        <Input
+          id="companyName"
+          label="Tên công ty"
+          required
+          value={form.companyName}
+          onChange={handleChange("companyName")}
+          error={errors.companyName}
+          placeholder="Nhập tên công ty"
+        />
+        <Input
+          id="taxCode"
+          label="Mã số thuế"
+          required
+          value={form.taxCode}
+          onChange={handleChange("taxCode")}
+          error={errors.taxCode}
+          placeholder="Nhập mã số thuế"
+        />
       </div>
       <div className={styles.formRow}>
-        <Input id="representative" label="Người đại diện" required value={form.representative} onChange={handleChange('representative')} error={errors.representative} placeholder="Nhập tên người đại diện" />
-        <Input id="phone" label="Số điện thoại" required value={form.phone} onChange={handleChange('phone')} error={errors.phone} placeholder="0901234567" />
+        <Input
+          id="representative"
+          label="Người đại diện"
+          required
+          value={form.representative}
+          onChange={handleChange("representative")}
+          error={errors.representative}
+          placeholder="Nhập tên người đại diện"
+        />
+        <Input
+          id="phone"
+          label="Số điện thoại"
+          required
+          value={form.phone}
+          onChange={handleChange("phone")}
+          error={errors.phone}
+          placeholder="0901234567"
+        />
       </div>
       <div className={styles.formRow}>
-        <Input id="email" label="Email" required type="email" value={form.email} onChange={handleChange('email')} error={errors.email} placeholder="email@company.vn" />
-        <Input id="address" label="Địa chỉ" required value={form.address} onChange={handleChange('address')} error={errors.address} placeholder="Nhập địa chỉ" />
+        <Input
+          id="email"
+          label="Email"
+          required
+          type="email"
+          value={form.email}
+          onChange={handleChange("email")}
+          error={errors.email}
+          placeholder="email@company.vn"
+        />
+        <Input
+          id="address"
+          label="Địa chỉ"
+          required
+          value={form.address}
+          onChange={handleChange("address")}
+          error={errors.address}
+          placeholder="Nhập địa chỉ"
+        />
       </div>
       <div className={styles.formGroup}>
-        <label htmlFor="note" className={styles.label}>Ghi chú</label>
-        <textarea id="note" className={styles.textarea} value={form.note} onChange={handleChange('note')} rows={3} placeholder="Ghi chú thêm..." maxLength={1000} />
+        <label htmlFor="note" className={styles.label}>
+          Ghi chú
+        </label>
+        <textarea
+          id="note"
+          className={styles.textarea}
+          value={form.note}
+          onChange={handleChange("note")}
+          rows={3}
+          placeholder="Ghi chú thêm..."
+          maxLength={1000}
+        />
       </div>
     </div>
   );
@@ -380,9 +525,13 @@ export function SupplierManagement() {
         <div className={styles.header}>
           <div>
             <h2 className={styles.title}>Quản lý nhà cung cấp</h2>
-            <p className={styles.subtitle}>{displaySuppliers.length} nhà cung cấp</p>
+            <p className={styles.subtitle}>
+              {displaySuppliers.length} nhà cung cấp
+            </p>
           </div>
-          <Button icon="fi fi-rr-add" onClick={openAdd} id="add-supplier-btn">Thêm mới</Button>
+          <Button icon="fi fi-rr-add" onClick={openAdd} id="add-supplier-btn">
+            Thêm mới
+          </Button>
         </div>
 
         <Card>
@@ -393,18 +542,29 @@ export function SupplierManagement() {
                 placeholder="Tìm theo tên, mã, email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onClear={() => setSearchQuery('')}
+                onClear={() => setSearchQuery("")}
               />
             }
           />
           <CardBody className={styles.tableBody}>
             {loading || isBackendSearching ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-subtext)' }}>
+              <div
+                style={{
+                  padding: "40px",
+                  textAlign: "center",
+                  color: "var(--color-subtext)",
+                }}
+              >
                 Đang tải dữ liệu nhà cung cấp...
               </div>
             ) : (
               <>
-                <Table columns={columns} data={displaySuppliers} rowKey="id" emptyText="Không tìm thấy nhà cung cấp" />
+                <Table
+                  columns={columns}
+                  data={displaySuppliers}
+                  rowKey="id"
+                  emptyText="Không tìm thấy nhà cung cấp"
+                />
                 <div className={styles.paginationWrap}>
                   <Pagination
                     pagination={{
@@ -421,58 +581,112 @@ export function SupplierManagement() {
         </Card>
       </div>
 
-      <Modal isOpen={modalMode === 'add'} onClose={closeModal} title="Thêm nhà cung cấp mới" size="lg">
+      <Modal
+        isOpen={modalMode === "add"}
+        onClose={closeModal}
+        title="Thêm nhà cung cấp mới"
+        size="lg"
+      >
         {renderForm()}
         <div className={styles.modalActions}>
-          <Button variant="secondary" onClick={closeModal}>Hủy</Button>
-          <Button onClick={handleAdd} icon="fi fi-rr-check" disabled={isFormInvalidForAdd()}>Lưu nhà cung cấp</Button>
+          <Button variant="secondary" onClick={closeModal}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleAdd}
+            icon="fi fi-rr-check"
+            disabled={isFormInvalidForAdd()}
+          >
+            Lưu nhà cung cấp
+          </Button>
         </div>
       </Modal>
 
-      <Modal isOpen={modalMode === 'edit'} onClose={closeModal} title={`Chỉnh sửa: ${selectedSupplier?.companyName ?? ''}`} size="lg">
+      <Modal
+        isOpen={modalMode === "edit"}
+        onClose={closeModal}
+        title={`Chỉnh sửa: ${selectedSupplier?.companyName ?? ""}`}
+        size="lg"
+      >
         {renderForm()}
         <div className={styles.modalActions}>
-          <Button variant="secondary" onClick={closeModal}>Hủy</Button>
-          <Button onClick={handleEdit} icon="fi fi-rr-check" disabled={isFormUnchanged()}>Lưu thay đổi</Button>
+          <Button variant="secondary" onClick={closeModal}>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleEdit}
+            icon="fi fi-rr-check"
+            disabled={isFormUnchanged()}
+          >
+            Lưu thay đổi
+          </Button>
         </div>
       </Modal>
 
-      <Modal isOpen={modalMode === 'detail'} onClose={closeModal} title="Chi tiết nhà cung cấp" size="lg">
+      <Modal
+        isOpen={modalMode === "detail"}
+        onClose={closeModal}
+        title="Chi tiết nhà cung cấp"
+        size="lg"
+      >
         {selectedSupplier && (
           <>
             <div className={styles.detail}>
-              {(Object.entries({
-                'Mã NCC': selectedSupplier.code,
-                'Tên công ty': selectedSupplier.companyName,
-                'Mã số thuế': selectedSupplier.taxCode,
-                'Người đại diện': selectedSupplier.representative,
-                'Người liên hệ': selectedSupplier.contactPerson,
-                'Số điện thoại': selectedSupplier.phone,
-                'Email': selectedSupplier.email,
-                'Trạng thái': STATUS_MAP[selectedSupplier.status],
-                'Địa chỉ': selectedSupplier.address,
-                'Ghi chú': selectedSupplier.note || '—',
-                'Ngày thêm': formatDateTime(selectedSupplier.createdAt),
-                'Ngày cập nhật': formatDateTime(selectedSupplier.updatedAt || selectedSupplier.createdAt),
-              })).map(([k, v]) => {
-                const isFullWidth = k === 'Địa chỉ' || k === 'Ghi chú';
+              {Object.entries({
+                "Mã NCC": selectedSupplier.code,
+                "Tên công ty": selectedSupplier.companyName,
+                "Mã số thuế": selectedSupplier.taxCode,
+                "Người đại diện": selectedSupplier.representative,
+                "Người liên hệ": selectedSupplier.contactPerson,
+                "Số điện thoại": selectedSupplier.phone,
+                Email: selectedSupplier.email,
+                "Trạng thái": STATUS_MAP[selectedSupplier.status],
+                "Địa chỉ": selectedSupplier.address,
+                "Ghi chú": selectedSupplier.note || "—",
+                "Ngày thêm": formatDateTime(selectedSupplier.createdAt),
+                "Ngày cập nhật": formatDateTime(
+                  selectedSupplier.updatedAt || selectedSupplier.createdAt,
+                ),
+              }).map(([k, v]) => {
+                const isFullWidth = k === "Địa chỉ" || k === "Ghi chú";
                 return (
-                  <div key={k} className={[styles.detailRow, isFullWidth ? styles.detailRowFullWidth : ''].join(' ')}>
+                  <div
+                    key={k}
+                    className={[
+                      styles.detailRow,
+                      isFullWidth ? styles.detailRowFullWidth : "",
+                    ].join(" ")}
+                  >
                     <span className={styles.detailKey}>{k}</span>
                     <span className={styles.detailVal}>
-                      {k === 'Trạng thái' ? (
-                        <span className={[styles.badge, v === 'Hoạt động' ? styles.active : styles.inactive].join(' ')}>
+                      {k === "Trạng thái" ? (
+                        <span
+                          className={[
+                            styles.badge,
+                            v === "Hoạt động" ? styles.active : styles.inactive,
+                          ].join(" ")}
+                        >
                           {v}
                         </span>
-                      ) : v}
+                      ) : (
+                        v
+                      )}
                     </span>
                   </div>
                 );
               })}
             </div>
             <div className={styles.modalActions}>
-              <Button variant="secondary" onClick={closeModal}>Đóng</Button>
-              <Button variant="secondary" icon="fi fi-rr-edit" onClick={() => openEdit(selectedSupplier)}>Chỉnh sửa</Button>
+              <Button variant="secondary" onClick={closeModal}>
+                Đóng
+              </Button>
+              <Button
+                variant="secondary"
+                icon="fi fi-rr-edit"
+                onClick={() => openEdit(selectedSupplier)}
+              >
+                Chỉnh sửa
+              </Button>
             </div>
           </>
         )}

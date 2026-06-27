@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -48,9 +50,15 @@ public class Product {
     @Column(name = "option3_name", length = 100)
     private String option3Name;
 
+    @Column(length = 50, nullable = false)
+    private String unit;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private Status status = Status.ACTIVE;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductVariant> variants = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

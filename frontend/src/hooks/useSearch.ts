@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useDebounce } from './useDebounce';
+import { useState, useMemo } from "react";
+import { useDebounce } from "./useDebounce";
 
 interface UseSearchReturn<T> {
   query: string;
@@ -11,7 +11,7 @@ export function useSearch<T>(
   items: T[],
   searchKeys: (keyof T)[],
 ): UseSearchReturn<T> {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
 
   const filteredItems = useMemo(() => {
@@ -21,7 +21,7 @@ export function useSearch<T>(
     return items.filter((item) =>
       searchKeys.some((key) => {
         const val = item[key];
-        return typeof val === 'string' && val.toLowerCase().includes(lower);
+        return typeof val === "string" && val.toLowerCase().includes(lower);
       }),
     );
   }, [items, debouncedQuery, searchKeys]);

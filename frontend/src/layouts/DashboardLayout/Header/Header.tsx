@@ -1,16 +1,16 @@
-import { useLocation } from 'react-router-dom';
-import styles from './Header.module.css';
+import { useLocation } from "react-router-dom";
+import styles from "./Header.module.css";
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'Dashboard',
-  '/coordinator/suppliers': 'Nhà cung cấp',
-  '/coordinator/warehouse-receipt': 'Lập phiếu nhập kho',
-  '/coordinator/payment': 'Thanh toán nhà cung cấp',
-  '/warehouse/products': 'Danh sách sản phẩm',
-  '/warehouse/products/create': 'Tạo sản phẩm mới',
-  '/storekeeper/suppliers': 'Quản lý nhà cung cấp',
-  '/storekeeper/contact': 'Liên hệ đặt hàng',
-  '/profile': 'Thông tin cá nhân',
+  "/": "Dashboard",
+  "/coordinator/suppliers": "Nhà cung cấp",
+  "/coordinator/warehouse-receipt": "Lập phiếu nhập kho",
+  "/coordinator/payment": "Thanh toán nhà cung cấp",
+  "/warehouse/products": "Danh sách sản phẩm",
+  "/warehouse/products/create": "Tạo sản phẩm mới",
+  "/storekeeper/suppliers": "Quản lý nhà cung cấp",
+  "/storekeeper/contact": "Liên hệ đặt hàng",
+  "/profile": "Thông tin cá nhân",
 };
 
 interface HeaderProps {
@@ -21,14 +21,17 @@ interface HeaderProps {
 export function Header({ onMenuClick, onToggleSidebar }: HeaderProps) {
   const location = useLocation();
 
-  // Lấy tiêu đề trang theo path hiện tại
+  // Lấy tiêu đề trang
   const getTitle = () => {
     for (const [path, title] of Object.entries(PAGE_TITLES)) {
-      if (location.pathname === path || location.pathname.startsWith(path + '/')) {
+      if (
+        location.pathname === path ||
+        location.pathname.startsWith(path + "/")
+      ) {
         return title;
       }
     }
-    return 'WareFlow';
+    return "WareFlow";
   };
 
   return (
@@ -44,7 +47,7 @@ export function Header({ onMenuClick, onToggleSidebar }: HeaderProps) {
         </button>
 
         <button
-          className={[styles.menuBtn, styles.desktopToggle].join(' ')}
+          className={[styles.menuBtn, styles.desktopToggle].join(" ")}
           onClick={onToggleSidebar}
           aria-label="Thu gọn sidebar"
           id="sidebar-toggle-btn"
@@ -57,8 +60,7 @@ export function Header({ onMenuClick, onToggleSidebar }: HeaderProps) {
         </div>
       </div>
 
-      <div className={styles.right}>
-      </div>
+      <div className={styles.right}></div>
     </header>
   );
 }

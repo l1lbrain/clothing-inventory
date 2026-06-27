@@ -1,4 +1,4 @@
-import type { Status } from './common.types';
+import type { Status } from "./common.types";
 
 export interface Supplier {
   id: string;

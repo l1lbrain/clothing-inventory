@@ -9,8 +9,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = {ProductVariantMapper.class})
 public interface ProductMapper {
 
-    @Mapping(target = "variants", source = "product.variants")
+    @Mapping(target = "categoryName", source = "category.name")
     ProductResponseDto toResponse(Product product);
 
+    @Mapping(target = "variants", ignore = true)
+        // Variants will be handled manually in the service
     Product toEntity(ProductCreateRequestDto request);
 }

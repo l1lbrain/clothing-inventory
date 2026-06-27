@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import type { TableColumn } from '../../types/common.types';
-import styles from './Table.module.css';
+import type { ReactNode } from "react";
+import type { TableColumn } from "../../types/common.types";
+import styles from "./Table.module.css";
 
 interface TableProps<T> {
   columns: TableColumn<T>[];
@@ -10,7 +10,13 @@ interface TableProps<T> {
   loading?: boolean;
 }
 
-export function Table<T>({ columns, data, rowKey, emptyText = 'Không có dữ liệu', loading = false }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  data,
+  rowKey,
+  emptyText = "Không có dữ liệu",
+  loading = false,
+}: TableProps<T>) {
   return (
     <div className={styles.tableWrapper}>
       <table className={styles.table}>
@@ -21,7 +27,7 @@ export function Table<T>({ columns, data, rowKey, emptyText = 'Không có dữ l
                 key={String(col.key)}
                 className={styles.th}
                 style={col.width ? { width: col.width } : undefined}
-                data-align={col.align ?? 'left'}
+                data-align={col.align ?? "left"}
               >
                 {col.label}
               </th>
@@ -51,16 +57,26 @@ export function Table<T>({ columns, data, rowKey, emptyText = 'Không có dữ l
             data.map((row) => (
               <tr key={String(row[rowKey])} className={styles.tr}>
                 {columns.map((col) => {
-                  const cellValue = row[col.key as keyof T] ?? '—';
+                  const cellValue = row[col.key as keyof T] ?? "—";
                   return (
                     <td
                       key={String(col.key)}
-                      className={[styles.td, !col.render ? styles.ellipsisCell : ''].join(' ')}
-                      data-align={col.align ?? 'left'}
-                      title={!col.render && cellValue !== '—' ? String(cellValue) : undefined}
+                      className={[
+                        styles.td,
+                        !col.render ? styles.ellipsisCell : "",
+                      ].join(" ")}
+                      data-align={col.align ?? "left"}
+                      title={
+                        !col.render && cellValue !== "—"
+                          ? String(cellValue)
+                          : undefined
+                      }
                     >
                       {col.render
-                        ? col.render(row[col.key as keyof T] as unknown, row) as ReactNode
+                        ? (col.render(
+                            row[col.key as keyof T] as unknown,
+                            row,
+                          ) as ReactNode)
                         : String(cellValue)}
                     </td>
                   );

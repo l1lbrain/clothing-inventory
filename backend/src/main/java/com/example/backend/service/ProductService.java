@@ -20,7 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.stream.Collectors;
+import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -50,10 +56,6 @@ public class ProductService {
 
     @Transactional
     public ProductResponseDto createProduct(ProductCreateRequestDto request) {
-        if (productRepository.existsByCode(request.getCode())) {
-            throw new InvalidException(ErrorCode.CONFLICT_PRODUCT_CODE); // Cần thêm mã lỗi này
-        }
-
         Category category = null;
         if (request.getCategoryId() != null) {
             category = categoryRepository.findById(request.getCategoryId())
@@ -63,15 +65,13 @@ public class ProductService {
         Product product = productMapper.toEntity(request);
         product.setCategory(category);
         product.setStatus(Status.ACTIVE);
+        product.setCode(generateUniqueProductCode());
 
-        // Tạo các phiên bản
         List<ProductVariant> variants = request.getVariants().stream().map(variantDto -> {
-            if (variantRepository.existsBySku(variantDto.getSku())) {
-                throw new InvalidException(ErrorCode.SKU_ALREADY_EXISTS, "SKU: " + variantDto.getSku());
-            }
+            String sku = generateSku(product.getCode(), variantDto.getOption1Value(), variantDto.getOption2Value(), variantDto.getOption3Value());
             return ProductVariant.builder()
                     .product(product)
-                    .sku(variantDto.getSku())
+                    .sku(sku)
                     .option1Value(variantDto.getOption1Value())
                     .option2Value(variantDto.getOption2Value())
                     .option3Value(variantDto.getOption3Value())
@@ -80,11 +80,44 @@ public class ProductService {
                     .quantityOnHand(0)
                     .status(Status.ACTIVE)
                     .build();
-        }).collect(Collectors.toList());
+        }).toList();
 
         product.setVariants(variants);
 
         Product savedProduct = productRepository.save(product);
         return productMapper.toResponse(savedProduct);
+    }
+
+    private String generateUniqueProductCode() {
+        String newCode;
+        do {
+            String datePart = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh")).format(DateTimeFormatter.ofPattern("yyMMdd"));
+            String randomPart = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+            newCode = "SP-" + datePart + "-" + randomPart;
+        } while (productRepository.existsByCode(newCode));
+        return newCode;
+    }
+
+    private String generateSku(String productCode, String... options) {
+        StringBuilder skuBuilder = new StringBuilder(productCode);
+        for (String option : options) {
+            if (StringUtils.hasText(option)) {
+                skuBuilder.append("-").append(slugify(option));
+            }
+        }
+        return skuBuilder.toString().toUpperCase();
+    }
+
+    private String slugify(String text) {
+        if (!StringUtils.hasText(text)) {
+            return "";
+        }
+        String nfdNormalizedString = Normalizer.normalize(text, Normalizer.Form.NFD);
+        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        return pattern.matcher(nfdNormalizedString).replaceAll("")
+                .toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-");
     }
 }

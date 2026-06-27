@@ -10,17 +10,16 @@ import java.util.List;
 
 @Data
 public class ProductCreateRequestDto {
-
-    @NotBlank(message = "Product code cannot be blank")
-    @Size(max = 50, message = "Product code cannot exceed 50 characters")
-    private String code;
-
     @NotBlank(message = "Product name cannot be blank")
     @Size(max = 255, message = "Product name cannot exceed 255 characters")
     private String name;
 
     private Long categoryId;
     private String brand;
+
+    @Size(max = 50, message = "Unit cannot exceed 50 characters")
+    private String unit;
+
     private String description;
     private String imageUrl;
 

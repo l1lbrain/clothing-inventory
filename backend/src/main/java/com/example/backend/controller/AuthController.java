@@ -58,7 +58,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<AuthResponseDto.RefreshToken> refreshToken(@CookieValue(value = "refreshToken", required = false) String refreshToken) {
+    public ResponseEntity<AuthResponseDto.RefreshToken> refreshToken(@CookieValue(value = "refresh_token", required = false) String refreshToken) {
         if (refreshToken == null) throw new InvalidException(ErrorCode.UNAUTHORIZED_REFRESH_TOKEN);
         return ResponseEntity.ok().body(authService.refreshAccessToken(refreshToken));
     }

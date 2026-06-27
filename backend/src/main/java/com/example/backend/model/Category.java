@@ -24,7 +24,7 @@ public class Category {
     @Column(unique = true, length = 50)
     private String code;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String name;
 
     @Enumerated(EnumType.STRING)

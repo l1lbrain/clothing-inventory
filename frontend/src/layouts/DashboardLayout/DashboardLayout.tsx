@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import { Sidebar } from './Sidebar/Sidebar';
-import { Header } from './Header/Header';
-import { Drawer } from '../../components/Drawer/Drawer';
-import { isAuthenticated, getCurrentUser, fetchCurrentUser, logout, type User } from '../../services/auth';
-import { ApiError } from '../../services/api';
-import { ROUTES } from '../../constants/routes';
-import styles from './DashboardLayout.module.css';
+import { useState, useEffect } from "react";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
+import { Sidebar } from "./Sidebar/Sidebar";
+import { Header } from "./Header/Header";
+import { Drawer } from "../../components/Drawer/Drawer";
+import {
+  isAuthenticated,
+  getCurrentUser,
+  fetchCurrentUser,
+  logout,
+  type User,
+} from "../../services/auth";
+import { ApiError } from "../../services/api";
+import { ROUTES } from "../../constants/routes";
+import styles from "./DashboardLayout.module.css";
 
 export function DashboardLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -21,7 +27,7 @@ export function DashboardLayout() {
           setUser(updatedUser);
         })
         .catch((err) => {
-          console.error('Lỗi tải thông tin user:', err);
+          console.error("Lỗi tải thông tin user:", err);
           if (err instanceof ApiError && err.status === 401) {
             logout();
           }

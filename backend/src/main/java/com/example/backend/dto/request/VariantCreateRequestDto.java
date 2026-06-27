@@ -1,6 +1,5 @@
 package com.example.backend.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -17,12 +16,8 @@ import java.math.BigDecimal;
 @Builder
 public class VariantCreateRequestDto {
 
-    @NotNull(message = "Product ID cannot be null")
-    private Long productId;
-
-    @NotBlank(message = "SKU cannot be blank")
     @Size(max = 100, message = "SKU cannot exceed 100 characters")
-    private String sku;
+    private String sku; // SKU will be auto-generated
 
     @Size(max = 100, message = "Option 1 value cannot exceed 100 characters")
     private String option1Value;

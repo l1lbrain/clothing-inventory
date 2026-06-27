@@ -1,5 +1,5 @@
-import type { PaginationState } from '../../types/common.types';
-import styles from './Pagination.module.css';
+import type { PaginationState } from "../../types/common.types";
+import styles from "./Pagination.module.css";
 
 interface PaginationProps {
   pagination: PaginationState;
@@ -13,18 +13,23 @@ export function Pagination({ pagination, onPageChange }: PaginationProps) {
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
-  // Tính danh sách số trang hiển thị quanh trang hiện tại
-  const getPageNumbers = (): (number | '...')[] => {
-    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+  // Tính danh sách trang
+  const getPageNumbers = (): (number | "...")[] => {
+    if (totalPages <= 7)
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
 
-    const pages: (number | '...')[] = [1];
-    if (page > 3) pages.push('...');
+    const pages: (number | "...")[] = [1];
+    if (page > 3) pages.push("...");
 
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+    for (
+      let i = Math.max(2, page - 1);
+      i <= Math.min(totalPages - 1, page + 1);
+      i++
+    ) {
       pages.push(i);
     }
 
-    if (page < totalPages - 2) pages.push('...');
+    if (page < totalPages - 2) pages.push("...");
     pages.push(totalPages);
     return pages;
   };
@@ -45,14 +50,18 @@ export function Pagination({ pagination, onPageChange }: PaginationProps) {
         </button>
 
         {getPageNumbers().map((p, idx) =>
-          p === '...' ? (
-            <span key={`dots-${idx}`} className={styles.dots}>…</span>
+          p === "..." ? (
+            <span key={`dots-${idx}`} className={styles.dots}>
+              …
+            </span>
           ) : (
             <button
               key={p}
-              className={[styles.pageBtn, page === p ? styles.active : ''].join(' ')}
+              className={[styles.pageBtn, page === p ? styles.active : ""].join(
+                " ",
+              )}
               onClick={() => onPageChange(p as number)}
-              aria-current={page === p ? 'page' : undefined}
+              aria-current={page === p ? "page" : undefined}
             >
               {p}
             </button>

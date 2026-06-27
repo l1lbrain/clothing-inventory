@@ -1,8 +1,8 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import styles from './Button.module.css';
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import styles from "./Button.module.css";
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
-type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -13,8 +13,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   icon,
   children,
@@ -28,9 +28,9 @@ export function Button({
         styles.btn,
         styles[variant],
         styles[size],
-        loading ? styles.loading : '',
-        className ?? '',
-      ].join(' ')}
+        loading ? styles.loading : "",
+        className ?? "",
+      ].join(" ")}
       disabled={disabled || loading}
       {...rest}
     >

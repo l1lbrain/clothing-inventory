@@ -23,6 +23,7 @@ public enum ErrorCode {
     CONFLICT_SUPPLIER_PHONE(409, "Supplier phone already exists"),
     CONFLICT_SUPPLIER_TAX_CODE(409, "Supplier tax code already exists"),
     CONFLICT_CATEGORY_CODE(409, "Category code already exists"),
+    CONFLICT_PRODUCT_CODE(409, "Product code already exists"),
     CONFLICT_PURCHASE_ORDER_CODE(409, "Purchase order code already exists"),
     SKU_ALREADY_EXISTS(400, "SKU already exists in the system"),
 

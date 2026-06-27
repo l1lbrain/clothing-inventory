@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import styles from './Card.module.css';
+import type { ReactNode } from "react";
+import styles from "./Card.module.css";
 
 interface CardProps {
   children: ReactNode;
@@ -14,9 +14,7 @@ interface CardHeaderProps {
 
 export function Card({ children, className }: CardProps) {
   return (
-    <div className={[styles.card, className ?? ''].join(' ')}>
-      {children}
-    </div>
+    <div className={[styles.card, className ?? ""].join(" ")}>{children}</div>
   );
 }
 
@@ -34,7 +32,7 @@ export function CardHeader({ title, subtitle, actions }: CardHeaderProps) {
 
 export function CardBody({ children, className }: CardProps) {
   return (
-    <div className={[styles.cardBody, className ?? ''].join(' ')}>
+    <div className={[styles.cardBody, className ?? ""].join(" ")}>
       {children}
     </div>
   );

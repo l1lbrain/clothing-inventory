@@ -1,6 +1,6 @@
-import type { SelectHTMLAttributes } from 'react';
-import type { SelectOption } from '../../types/common.types';
-import styles from './Select.module.css';
+import type { SelectHTMLAttributes } from "react";
+import type { SelectOption } from "../../types/common.types";
+import styles from "./Select.module.css";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -9,7 +9,15 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string;
 }
 
-export function Select({ label, error, options, placeholder, id, className, ...rest }: SelectProps) {
+export function Select({
+  label,
+  error,
+  options,
+  placeholder,
+  id,
+  className,
+  ...rest
+}: SelectProps) {
   return (
     <div className={styles.formGroup}>
       {label && (
@@ -21,7 +29,11 @@ export function Select({ label, error, options, placeholder, id, className, ...r
       <div className={styles.selectWrapper}>
         <select
           id={id}
-          className={[styles.select, error ? styles.hasError : '', className ?? ''].join(' ')}
+          className={[
+            styles.select,
+            error ? styles.hasError : "",
+            className ?? "",
+          ].join(" ")}
           {...rest}
         >
           {placeholder && <option value="">{placeholder}</option>}
