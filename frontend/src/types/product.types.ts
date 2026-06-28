@@ -16,6 +16,10 @@ export interface Variant {
   color?: string;
   material?: string;
   note?: string;
+  status?: string;
+  option1Value?: string | null;
+  option2Value?: string | null;
+  option3Value?: string | null;
 }
 
 export interface Product {
@@ -37,7 +41,11 @@ export interface Product {
   color?: string;
   material?: string;
   brand?: string;
+  status?: string;
   variants: Variant[];
+  option1Name?: string | null;
+  option2Name?: string | null;
+  option3Name?: string | null;
 }
 
 export interface ProductFormData {

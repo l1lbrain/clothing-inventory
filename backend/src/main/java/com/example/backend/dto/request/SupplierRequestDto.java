@@ -1,5 +1,6 @@
 package com.example.backend.dto.request;
 
+import com.example.backend.model.enums.Status;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -31,4 +32,6 @@ public class SupplierRequestDto {
     private String taxCode;
 
     private String note;
+
+    private Status status;
 }

@@ -1,6 +1,9 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.ProductCreateRequestDto;
+import com.example.backend.dto.request.ProductUpdateRequestDto;
+import com.example.backend.dto.request.VariantBulkPriceUpdateRequestDto;
+import com.example.backend.dto.request.VariantDeleteRequestDto;
 import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.ProductResponseDto;
 import com.example.backend.service.ProductService;
@@ -11,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -27,14 +32,33 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts(keyword, pageable));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductResponseDto> getProductById(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
-    }
-
     @PostMapping
     public ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody ProductCreateRequestDto request) {
         ProductResponseDto response = productService.createProduct(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequestDto request) {
+        ProductResponseDto updatedProduct = productService.updateProduct(id, request);
+        return ResponseEntity.ok(updatedProduct);
+    }
+
+    @PutMapping("/variants/bulk-update-price")
+    public ResponseEntity<List<ProductResponseDto>> bulkUpdateVariantPrices(@Valid @RequestBody VariantBulkPriceUpdateRequestDto request) {
+        List<ProductResponseDto> affectedProducts = productService.bulkUpdateVariantPrices(request);
+        return ResponseEntity.ok(affectedProducts);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/variants")
+    public ResponseEntity<Void> deleteMultipleVariants(@Valid @RequestBody VariantDeleteRequestDto request) {
+        productService.deleteMultipleVariants(request.getVariantIds());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,6 +3,7 @@ export const ROUTES = {
   DASHBOARD: "/",
 
   COORDINATOR_SUPPLIER: "/coordinator/suppliers",
+  COORDINATOR_ORDER: "/coordinator/purchase-order",
   COORDINATOR_RECEIPT: "/coordinator/warehouse-receipt",
   COORDINATOR_PAYMENT: "/coordinator/payment",
 

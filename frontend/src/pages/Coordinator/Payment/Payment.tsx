@@ -1,7 +1,6 @@
-import { useState } from "react";
-import type { PaymentRecord } from "../../../types/payment.types";
+import { useState, useMemo } from "react";
+import type { WarehouseReceipt } from "../../../types/payment.types";
 import type { PaymentMethod } from "../../../types/common.types";
-import { MOCK_PAYMENTS } from "../../../data/payments.mock";
 import { Table } from "../../../components/Table/Table";
 import { Modal } from "../../../components/Modal/Modal";
 import { Button } from "../../../components/Button/Button";
@@ -9,6 +8,7 @@ import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
 import { Input } from "../../../components/Input/Input";
 import type { TableColumn } from "../../../types/common.types";
 import { formatCurrency, formatDate } from "../../../utils/formatters";
+import { useWarehouseContext } from "../../../hooks/useWarehouseContext";
 import styles from "./Payment.module.css";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -23,48 +23,42 @@ const METHOD_LABEL: Record<string, string> = {
   debt: "Công nợ",
 };
 
-const METHOD_OPTIONS: { value: PaymentMethod; label: string; icon: string }[] =
-  [
-    { value: "cash", label: "Tiền mặt", icon: "fi fi-rr-sack-dollar" },
-    { value: "transfer", label: "Chuyển khoản", icon: "fi fi-rr-bank" },
-  ];
+const METHOD_OPTIONS: { value: PaymentMethod; label: string; icon: string }[] = [
+  { value: "cash", label: "Tiền mặt", icon: "fi fi-rr-sack-dollar" },
+  { value: "transfer", label: "Chuyển khoản", icon: "fi fi-rr-bank" },
+];
 
 export function Payment() {
-  const [payments, setPayments] = useState<PaymentRecord[]>(MOCK_PAYMENTS);
-  const [selected, setSelected] = useState<PaymentRecord | null>(null);
+  const { warehouseReceipts, updatePayment } = useWarehouseContext();
+  const [selected, setSelected] = useState<WarehouseReceipt | null>(null);
   const [payMethod, setPayMethod] = useState<PaymentMethod>("transfer");
   const [payAmount, setPayAmount] = useState<string>("");
 
-  const openDetail = (row: PaymentRecord) => {
+  // Chỉ hiển thị phiếu đã xác nhận (isDraft === false)
+  const confirmedReceipts = useMemo(
+    () => warehouseReceipts.filter((r) => !r.isDraft),
+    [warehouseReceipts],
+  );
+
+  const openDetail = (row: WarehouseReceipt) => {
     setSelected(row);
     setPayMethod(row.paymentMethod);
     setPayAmount(String(row.remainingAmount));
   };
 
-  const handleConfirmPayment = () => {
-    if (!selected) return;
-    const amount = Math.min(Number(payAmount) || 0, selected.remainingAmount);
+  const currentSelected = selected
+    ? (warehouseReceipts.find((r) => r.id === selected.id) ?? selected)
+    : null;
 
-    setPayments((prev) =>
-      prev.map((p) => {
-        if (p.id !== selected.id) return p;
-        const newPaid = p.paidAmount + amount;
-        const newRemain = p.totalAmount - newPaid;
-        return {
-          ...p,
-          paidAmount: newPaid,
-          remainingAmount: newRemain,
-          paymentMethod: payMethod,
-          paymentStatus:
-            newRemain <= 0 ? "paid" : newPaid > 0 ? "partial" : "unpaid",
-        };
-      }),
-    );
+  const handleConfirmPayment = () => {
+    if (!currentSelected) return;
+    const amount = Math.min(Number(payAmount) || 0, currentSelected.remainingAmount);
+    updatePayment(currentSelected.id, amount, payMethod);
     setSelected(null);
   };
 
-  const columns: TableColumn<PaymentRecord>[] = [
-    { key: "receiptCode", label: "Mã phiếu", width: "150px" },
+  const columns: TableColumn<WarehouseReceipt>[] = [
+    { key: "code", label: "Mã phiếu", width: "150px" },
     { key: "supplierName", label: "Nhà cung cấp" },
     {
       key: "totalAmount",
@@ -72,9 +66,7 @@ export function Payment() {
       width: "140px",
       align: "right",
       render: (val) => (
-        <strong className={styles.amountText}>
-          {formatCurrency(val as number)}
-        </strong>
+        <strong className={styles.amountText}>{formatCurrency(val as number)}</strong>
       ),
     },
     {
@@ -92,9 +84,7 @@ export function Payment() {
       width: "130px",
       align: "right",
       render: (val) => (
-        <span
-          className={(val as number) > 0 ? styles.remainText : styles.zerText}
-        >
+        <span className={(val as number) > 0 ? styles.remainText : styles.zerText}>
           {formatCurrency(val as number)}
         </span>
       ),
@@ -143,24 +133,20 @@ export function Payment() {
     },
   ];
 
-  const currentSelected = selected
-    ? (payments.find((p) => p.id === selected.id) ?? selected)
-    : null;
-
   return (
     <section>
       <div className={styles.container}>
         <div className={styles.header}>
           <div>
             <h2 className={styles.title}>Thanh toán nhà cung cấp</h2>
-            <p className={styles.subtitle}>{payments.length} phiếu nhập</p>
+            <p className={styles.subtitle}>{confirmedReceipts.length} phiếu nhập</p>
           </div>
         </div>
 
         <Card>
           <CardHeader title="Danh sách phiếu nhập" />
           <CardBody className={styles.tableBody}>
-            <Table columns={columns} data={payments} rowKey="id" />
+            <Table columns={columns} data={confirmedReceipts} rowKey="id" emptyText="Chưa có phiếu nhập nào được xác nhận" />
           </CardBody>
         </Card>
       </div>
@@ -175,19 +161,10 @@ export function Payment() {
           <div className={styles.detail}>
             <div className={styles.detailHeader}>
               <div>
-                <span className={styles.receiptCode}>
-                  {currentSelected.receiptCode}
-                </span>
-                <p className={styles.supplierName}>
-                  {currentSelected.supplierName}
-                </p>
+                <span className={styles.receiptCode}>{currentSelected.code}</span>
+                <p className={styles.supplierName}>{currentSelected.supplierName}</p>
               </div>
-              <span
-                className={[
-                  styles.badge,
-                  styles[currentSelected.paymentStatus],
-                ].join(" ")}
-              >
+              <span className={[styles.badge, styles[currentSelected.paymentStatus]].join(" ")}>
                 {STATUS_LABEL[currentSelected.paymentStatus]}
               </span>
             </div>
@@ -257,9 +234,7 @@ export function Payment() {
             )}
 
             <div className={styles.detailFooter}>
-              <Button variant="secondary" onClick={() => setSelected(null)}>
-                Hủy
-              </Button>
+              <Button variant="secondary" onClick={() => setSelected(null)}>Hủy</Button>
               {currentSelected.remainingAmount > 0 ? (
                 <Button icon="fi fi-rr-check" onClick={handleConfirmPayment}>
                   Xác nhận thanh toán

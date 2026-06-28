@@ -5,6 +5,7 @@ import { Button } from "../../../components/Button/Button";
 import { Modal } from "../../../components/Modal/Modal";
 import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import { Input } from "../../../components/Input/Input";
+import { Select } from "../../../components/Select/Select";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
 import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import { Pagination } from "../../../components/Pagination/Pagination";
@@ -34,6 +35,7 @@ const INITIAL_FORM: SupplierFormData = {
   email: "",
   phone: "",
   note: "",
+  status: "active",
 };
 
 const STATUS_MAP = {
@@ -222,7 +224,8 @@ export function SupplierManagement() {
       form.phone === selectedSupplier.phone &&
       form.email === selectedSupplier.email &&
       form.address === selectedSupplier.address &&
-      form.note === (selectedSupplier.note || "")
+      form.note === (selectedSupplier.note || "") &&
+      form.status === selectedSupplier.status
     );
   };
 
@@ -253,6 +256,7 @@ export function SupplierManagement() {
       email: supplier.email,
       phone: supplier.phone,
       note: supplier.note,
+      status: supplier.status,
     });
     setErrors({});
     setSelectedSupplier(supplier);
@@ -272,7 +276,7 @@ export function SupplierManagement() {
 
   const handleChange =
     (field: keyof SupplierFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
       if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
     };
@@ -327,6 +331,7 @@ export function SupplierManagement() {
       "email",
       "phone",
       "note",
+      "status",
     ];
     const changedFields: Partial<SupplierFormData> = {};
     let changedCount = 0;
@@ -338,7 +343,11 @@ export function SupplierManagement() {
       const currentValue = form[key] || "";
 
       if (currentValue !== originalValue) {
-        changedFields[key] = currentValue;
+        if (key === "status") {
+          changedFields.status = currentValue as "active" | "inactive";
+        } else {
+          changedFields[key] = currentValue;
+        }
         changedCount++;
       }
     });
@@ -357,9 +366,27 @@ export function SupplierManagement() {
         // Thay đổi một phần -> Dùng PATCH
         await patchSupplier(selectedSupplier.code, changedFields);
       }
+      // Cập nhật thẳng vào state bằng cách khớp theo code để tránh gọi API
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.code === selectedSupplier.code
+            ? {
+                ...s,
+                companyName: form.companyName,
+                taxCode: form.taxCode,
+                representative: form.representative,
+                contactPerson: form.representative,
+                phone: form.phone,
+                email: form.email,
+                address: form.address,
+                note: form.note,
+                status: (form.status || "active") as "active" | "inactive",
+              }
+            : s
+        )
+      );
       showToast("Cập nhật thông tin nhà cung cấp thành công!", "success");
       closeModal();
-      triggerRefresh();
     } catch (err) {
       console.error("Lỗi khi cập nhật nhà cung cấp:", err);
       const errMsg =
@@ -500,6 +527,19 @@ export function SupplierManagement() {
           onChange={handleChange("address")}
           error={errors.address}
           placeholder="Nhập địa chỉ"
+        />
+      </div>
+      <div className={styles.formRow}>
+        <Select
+          id="status"
+          label="Trạng thái hoạt động"
+          required
+          options={[
+            { value: "active", label: "Hoạt động" },
+            { value: "inactive", label: "Ngừng hoạt động" },
+          ]}
+          value={form.status || "active"}
+          onChange={handleChange("status")}
         />
       </div>
       <div className={styles.formGroup}>

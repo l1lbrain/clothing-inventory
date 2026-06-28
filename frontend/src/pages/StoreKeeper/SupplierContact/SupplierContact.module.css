@@ -111,3 +111,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+.paginationWrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}

@@ -8,11 +8,13 @@ import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.SupplierMapper;
 import com.example.backend.model.Supplier;
 import com.example.backend.model.enums.Status;
+import com.example.backend.repository.PurchaseOrderRepository;
 import com.example.backend.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -25,6 +27,7 @@ import java.util.UUID;
 public class SupplierService {
 
     private final SupplierRepository supplierRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
     private final SupplierMapper supplierMapper;
 
     public PageResponseDto<SupplierResponseDto> getAllSuppliers(String keyword, Pageable pageable) {
@@ -38,12 +41,7 @@ public class SupplierService {
         return PageResponseDto.from(dtoPage);
     }
 
-    public SupplierResponseDto getSupplierByCode(String code) {
-        Supplier supplier = supplierRepository.findByCode(code)
-                .orElseThrow(() -> new InvalidException(ErrorCode.SUPPLIER_NOT_FOUND));
-        return supplierMapper.toResponse(supplier);
-    }
-
+    @Transactional
     public SupplierResponseDto createSupplier(SupplierRequestDto request) {
         if (StringUtils.hasText(request.getEmail()) && supplierRepository.existsByEmail(request.getEmail())) {
             throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_EMAIL);
@@ -64,28 +62,56 @@ public class SupplierService {
         return supplierMapper.toResponse(savedSupplier);
     }
 
+    @Transactional
     public SupplierResponseDto updateSupplier(String code, SupplierRequestDto request) {
         Supplier existingSupplier = supplierRepository.findByCode(code)
                 .orElseThrow(() -> new InvalidException(ErrorCode.SUPPLIER_NOT_FOUND));
+        if (request.getName() != null) {
+            existingSupplier.setName(request.getName());
+        }
+        if (request.getContactPerson() != null) {
+            existingSupplier.setContactPerson(request.getContactPerson());
+        }
+        if (request.getPhone() != null) {
+            if (supplierRepository.existsByPhone(request.getPhone()) && !request.getPhone().equals(existingSupplier.getPhone())) {
+                throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_PHONE);
+            }
+            existingSupplier.setPhone(request.getPhone());
+        }
+        if (request.getEmail() != null) {
+            if (supplierRepository.existsByEmail(request.getEmail()) && !request.getEmail().equals(existingSupplier.getEmail())) {
+                throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_EMAIL);
+            }
+            existingSupplier.setEmail(request.getEmail());
+        }
+        if (request.getAddress() != null) {
+            existingSupplier.setAddress(request.getAddress());
+        }
+        if (request.getTaxCode() != null) {
+            if (supplierRepository.existsByTaxCode(request.getTaxCode()) && !request.getTaxCode().equals(existingSupplier.getTaxCode())) {
+                throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_TAX_CODE);
+            }
+            existingSupplier.setTaxCode(request.getTaxCode());
+        }
+        if (request.getNote() != null) {
+            existingSupplier.setNote(request.getNote());
+        }
+        if (request.getStatus() != null) {
+            existingSupplier.setStatus(request.getStatus());
+        }
 
-        if (request.getEmail() != null && !request.getEmail().equals(existingSupplier.getEmail()) && supplierRepository.existsByEmail(request.getEmail())) {
-            throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_EMAIL);
-        }
-        if (request.getPhone() != null && !request.getPhone().equals(existingSupplier.getPhone()) && supplierRepository.existsByPhone(request.getPhone())) {
-            throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_PHONE);
-        }
-        if (request.getTaxCode() != null && !request.getTaxCode().equals(existingSupplier.getTaxCode()) && supplierRepository.existsByTaxCode(request.getTaxCode())) {
-            throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_TAX_CODE);
-        }
-
-        supplierMapper.updateEntity(request, existingSupplier);
-        Supplier updatedSupplier = supplierRepository.save(existingSupplier);
-        return supplierMapper.toResponse(updatedSupplier);
+        return supplierMapper.toResponse(existingSupplier);
     }
 
+    @Transactional
     public void deleteSupplier(String code) {
         Supplier supplier = supplierRepository.findByCode(code)
                 .orElseThrow(() -> new InvalidException(ErrorCode.SUPPLIER_NOT_FOUND));
+
+        if (purchaseOrderRepository.existsBySupplierId(supplier.getId())) {
+            throw new InvalidException(ErrorCode.CANNOT_DELETE_SUPPLIER_HAS_PURCHASE_ORDER);
+        }
+
         supplierRepository.delete(supplier);
     }
 

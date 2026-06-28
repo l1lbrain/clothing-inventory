@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type {
   Product,
-  ProductCategory,
   Variant,
 } from "../../../types/product.types";
 import { PRODUCT_CATEGORY_LABELS } from "../../../constants/product";
@@ -11,8 +10,8 @@ import { Pagination } from "../../../components/Pagination/Pagination";
 import { Select } from "../../../components/Select/Select";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
 import type { TableColumn, SelectOption } from "../../../types/common.types";
-import { formatCurrency } from "../../../utils/formatters";
-import { getProductsPage } from "../../../services/product";
+import { formatCurrency, formatDateTime } from "../../../utils/formatters";
+import { getProductsPage, deleteProduct, deleteVariant, deleteVariants, bulkUpdateVariantPrices, updateProduct, mapBackendProductToFrontend, type ProductUpdatePayload, updateVariant, type VariantUpdatePayload } from "../../../services/product";
 import { Modal } from "../../../components/Modal/Modal";
 import { Button } from "../../../components/Button/Button";
 import { useToast } from "../../../components/Toast/ToastContext";
@@ -22,6 +21,7 @@ import {
   isRequired,
   isPositiveNumber,
 } from "../../../utils/validators";
+import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import styles from "./ProductList.module.css";
 
 const CATEGORY_OPTIONS: SelectOption[] = [
@@ -55,8 +55,56 @@ export function ProductList() {
     color: "",
     material: "",
     brand: "",
+    status: "ACTIVE",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Trạng thái quản lý thuộc tính khi Chỉnh sửa sản phẩm
+  interface ProductAttribute {
+    name: string;
+    values: string[];
+  }
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [tagInputs, setTagInputs] = useState<string[]>(["", "", ""]);
+  const [variantPriceOverrides, setVariantPriceOverrides] = useState<
+    Record<string, { importPrice: string; salePrice: string }>
+  >({});
+  const [removedVariantLabels, setRemovedVariantLabels] = useState<Set<string>>(
+    new Set(),
+  );
+  const [editingVariantLabel, setEditingVariantLabel] = useState<string | null>(
+    null,
+  );
+  const [editingPrices, setEditingPrices] = useState({
+    importPrice: "",
+    salePrice: "",
+  });
+
+  interface VariantRow {
+    label: string;
+    values: string[];
+  }
+  const previewVariants = useMemo((): VariantRow[] => {
+    const activeAttrs = attributes.filter(
+      (a) => a.name.trim() && a.values.length > 0
+    );
+    if (activeAttrs.length === 0) return [];
+    const cartesian = (arrays: string[][]): string[][] => {
+      return arrays.reduce<string[][]>(
+        (acc, arr) => acc.flatMap((prev: string[]) => arr.map((val: string) => [...prev, val])),
+        [[]]
+      );
+    };
+    const combos = cartesian(activeAttrs.map((a) => a.values));
+    return combos.map((vals) => ({
+      label: vals.join(" / "),
+      values: vals,
+    }));
+  }, [attributes]);
+
+  const visibleVariants = previewVariants.filter(
+    (v: VariantRow) => !removedVariantLabels.has(v.label)
+  );
 
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [isVariantEditOpen, setIsVariantEditOpen] = useState(false);
@@ -69,6 +117,7 @@ export function ProductList() {
     material: "",
     stock: "",
     note: "",
+    status: "ACTIVE",
   });
 
   // Trạng thái chọn nhiều
@@ -76,17 +125,23 @@ export function ProductList() {
     new Set(),
   );
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
-  const [bulkForm, setBulkForm] = useState({ importPrice: "", salePrice: "" });
+  const [bulkForm, setBulkForm] = useState({ importPrice: "", salePrice: "", status: "" });
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  const { showToast } = useToast();
+  // Trạng thái xác nhận xóa
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [deleteVariantId, setDeleteVariantId] = useState<string | null>(null);
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
+
+   const { showToast } = useToast();
 
   // Debounce tìm kiếm
   useEffect(() => {
@@ -117,7 +172,7 @@ export function ProductList() {
       }
     };
     fetchProducts();
-  }, [currentPage, showToast, debouncedQuery]);
+  }, [currentPage, refreshTrigger, showToast, debouncedQuery]);
 
   // Danh sách sản phẩm đã lọc
   const displayProducts = (() => {
@@ -146,10 +201,309 @@ export function ProductList() {
       color: product.color || "",
       material: product.material || "",
       brand: product.brand || "",
+      status: product.status || "ACTIVE",
     });
     setErrors({});
+
+    // Phân tích thuộc tính hiện tại từ các biến thể của sản phẩm
+    const currentAttrs: ProductAttribute[] = [];
+    
+    if (product.option1Name) {
+      const values = Array.from(new Set(product.variants.map((v) => v.option1Value || v.color).filter(Boolean))) as string[];
+      if (values.length > 0) {
+        currentAttrs.push({ name: product.option1Name, values });
+      }
+    }
+    if (product.option2Name) {
+      const values = Array.from(new Set(product.variants.map((v) => v.option2Value || v.size).filter(Boolean))) as string[];
+      if (values.length > 0) {
+        currentAttrs.push({ name: product.option2Name, values });
+      }
+    }
+    if (product.option3Name) {
+      const values = Array.from(new Set(product.variants.map((v) => v.option3Value || v.material).filter(Boolean))) as string[];
+      if (values.length > 0) {
+        currentAttrs.push({ name: product.option3Name, values });
+      }
+    }
+
+    if (currentAttrs.length === 0) {
+      const sizes = Array.from(new Set(product.variants.map((v) => v.size).filter(Boolean))) as string[];
+      const colors = Array.from(new Set(product.variants.map((v) => v.color).filter(Boolean))) as string[];
+      const materials = Array.from(new Set(product.variants.map((v) => v.material).filter(Boolean))) as string[];
+
+      if (colors.length > 0) {
+        currentAttrs.push({ name: "Màu sắc", values: colors });
+      }
+      if (sizes.length > 0) {
+        currentAttrs.push({ name: "Kích thước", values: sizes });
+      }
+      if (materials.length > 0) {
+        currentAttrs.push({ name: "Chất liệu", values: materials });
+      }
+    }
+
+    setAttributes(currentAttrs);
+    setTagInputs(["", "", ""]);
+
+    // Phân tích giá trị override giá
+    const overrides: Record<string, { importPrice: string; salePrice: string }> = {};
+    const colors = currentAttrs.find((a) => a.name === product.option1Name || a.name === "Màu sắc")?.values || [];
+    const sizes = currentAttrs.find((a) => a.name === product.option2Name || a.name === "Kích thước")?.values || [];
+    const materials = currentAttrs.find((a) => a.name === product.option3Name || a.name === "Chất liệu")?.values || [];
+
+    product.variants.forEach((v) => {
+      const vals: string[] = [];
+      if (colors.length > 0 && v.color) vals.push(v.color);
+      if (sizes.length > 0 && v.size) vals.push(v.size);
+      if (materials.length > 0 && v.material) vals.push(v.material);
+
+      if (vals.length > 0) {
+        const label = vals.join(" / ");
+        overrides[label] = {
+          importPrice: String(v.importPrice),
+          salePrice: String(v.salePrice),
+        };
+      }
+    });
+
+    setVariantPriceOverrides(overrides);
+    setRemovedVariantLabels(new Set());
+    setEditingVariantLabel(null);
+
     setSelectedProduct(product);
     setIsEditOpen(true);
+  };
+
+  const addAttribute = () => {
+    if (attributes.length >= 3) return;
+    const defaultNames = ["Màu sắc", "Kích thước", "Chất liệu"];
+    const name =
+      defaultNames.find(
+        (dName) => !attributes.some((attr) => attr.name === dName),
+      ) || "";
+    setAttributes((prev) => [...prev, { name, values: [] }]);
+  };
+
+  const removeAttribute = (index: number) => {
+    const attr = attributes[index];
+    if (selectedProduct) {
+      const lowerName = attr.name.toLowerCase();
+      const withStock = selectedProduct.variants.filter((v) => {
+        if (v.stock <= 0) return false;
+        if (lowerName.includes("màu") || lowerName.includes("color")) return !!v.color;
+        if (lowerName.includes("kích thước") || lowerName.includes("size")) return !!v.size;
+        if (lowerName.includes("chất liệu") || lowerName.includes("material")) return !!v.material;
+        return false;
+      });
+
+      if (withStock.length > 0) {
+        showToast(`Không thể xóa thuộc tính "${attr.name}" vì có phiên bản vẫn còn tồn kho!`, "warning");
+        return;
+      }
+    }
+
+    setAttributes((prev) => prev.filter((_, idx) => idx !== index));
+    setTagInputs((prev) => {
+      const copy = [...prev];
+      copy.splice(index, 1);
+      copy.push(""); // Keep length 3
+      return copy;
+    });
+  };
+
+  const updateAttributeName = (index: number, name: string) => {
+    setAttributes((prev) =>
+      prev.map((attr, idx) => {
+        if (idx !== index) return attr;
+        return { ...attr, name };
+      }),
+    );
+  };
+
+  const updateTagInput = (index: number, value: string) => {
+    setTagInputs((prev) => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
+
+  const removeAttributeValue = (attrIndex: number, valIndex: number) => {
+    const attr = attributes[attrIndex];
+    const val = attr.values[valIndex];
+    if (selectedProduct) {
+      const lowerName = attr.name.toLowerCase();
+      const withStock = selectedProduct.variants.filter((v) => {
+        if (v.stock <= 0) return false;
+        if (lowerName.includes("màu") || lowerName.includes("color")) {
+          return v.color?.toLowerCase() === val.toLowerCase();
+        }
+        if (lowerName.includes("kích thước") || lowerName.includes("size")) {
+          return v.size?.toLowerCase() === val.toLowerCase();
+        }
+        if (lowerName.includes("chất liệu") || lowerName.includes("material")) {
+          return v.material?.toLowerCase() === val.toLowerCase();
+        }
+        return false;
+      });
+
+      if (withStock.length > 0) {
+        showToast(`Không thể xóa giá trị "${val}" vì có phiên bản vẫn còn tồn kho!`, "warning");
+        return;
+      }
+    }
+
+    setAttributes((prev) =>
+      prev.map((attr, idx) => {
+        if (idx !== attrIndex) return attr;
+        return {
+          ...attr,
+          values: attr.values.filter((_, vIdx) => vIdx !== valIndex),
+        };
+      }),
+    );
+  };
+
+  const handleTagKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    attrIndex: number,
+  ) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const value = tagInputs[attrIndex].trim();
+      if (value) {
+        const newVals = value
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean);
+        setAttributes((prev) =>
+          prev.map((attr, idx) => {
+            if (idx !== attrIndex) return attr;
+            const filtered = newVals.filter((v) => !attr.values.includes(v));
+            return {
+              ...attr,
+              values: [...attr.values, ...filtered],
+            };
+          }),
+        );
+        setTagInputs((prev) => {
+          const copy = [...prev];
+          copy[attrIndex] = "";
+          return copy;
+        });
+        setRemovedVariantLabels(new Set());
+      }
+    } else if (e.key === "Backspace" && !tagInputs[attrIndex]) {
+      setAttributes((prev) =>
+        prev.map((attr, idx) => {
+          if (idx !== attrIndex || attr.values.length === 0) return attr;
+          return {
+            ...attr,
+            values: attr.values.slice(0, -1),
+          };
+        }),
+      );
+    }
+  };
+
+  const handleTagBlur = (attrIndex: number) => {
+    const value = tagInputs[attrIndex].trim();
+    if (value) {
+      const newVals = value
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+      setAttributes((prev) =>
+        prev.map((attr, idx) => {
+          if (idx !== attrIndex) return attr;
+          const filtered = newVals.filter((v) => !attr.values.includes(v));
+          return {
+            ...attr,
+            values: [...attr.values, ...filtered],
+          };
+        }),
+      );
+      setTagInputs((prev) => {
+        const copy = [...prev];
+        copy[attrIndex] = "";
+        return copy;
+      });
+      setRemovedVariantLabels(new Set());
+    }
+  };
+
+  const startEditVariant = (v: { label: string }) => {
+    const override = variantPriceOverrides[v.label];
+    setEditingPrices({
+      importPrice: override?.importPrice || String(form.importPrice),
+      salePrice: override?.salePrice || String(form.salePrice),
+    });
+    setEditingVariantLabel(v.label);
+  };
+
+  const confirmEditVariant = (label: string) => {
+    setVariantPriceOverrides((prev) => {
+      const next = { ...prev };
+      const imp = editingPrices.importPrice.trim();
+      const sale = editingPrices.salePrice.trim();
+
+      const isImpOverridden = imp !== "" && imp !== String(form.importPrice);
+      const isSaleOverridden = sale !== "" && sale !== String(form.salePrice);
+
+      if (!isImpOverridden && !isSaleOverridden) {
+        delete next[label];
+      } else {
+        next[label] = {
+          importPrice: isImpOverridden ? imp : "",
+          salePrice: isSaleOverridden ? sale : "",
+        };
+      }
+      return next;
+    });
+    setEditingVariantLabel(null);
+  };
+
+  const cancelEditVariant = () => setEditingVariantLabel(null);
+
+  const removeVariant = (label: string) => {
+    const newRemovedLabels = new Set([...removedVariantLabels, label]);
+    setRemovedVariantLabels(newRemovedLabels);
+    if (editingVariantLabel === label) setEditingVariantLabel(null);
+
+    const remaining = previewVariants.filter(
+      (v: VariantRow) => !newRemovedLabels.has(v.label),
+    );
+
+    const activeAttrs = attributes.filter(
+      (a) => a.name.trim() && a.values.length > 0,
+    );
+
+    const usedValueSets = activeAttrs.map(
+      (_, attrIdx) =>
+        new Set(remaining.map((v: VariantRow) => v.values[attrIdx]).filter(Boolean)),
+    );
+
+    setAttributes((prev) => {
+      let activeIdx = 0;
+      const updated = prev
+        .map((attr) => {
+          const isActive = attr.name.trim() && attr.values.length > 0;
+          if (!isActive) return attr;
+          const used = usedValueSets[activeIdx] ?? new Set<string>();
+          activeIdx++;
+          return { ...attr, values: attr.values.filter((v) => used.has(v)) };
+        })
+        .filter((attr) => attr.values.length > 0);
+
+      setTagInputs((ti) => {
+        const next = updated.map((_, i) => ti[i] ?? "");
+        while (next.length < 3) next.push("");
+        return next;
+      });
+
+      return updated;
+    });
   };
 
   const handleChange =
@@ -172,7 +526,7 @@ export function ProductList() {
     return new Intl.NumberFormat("vi-VN").format(Number(cleanVal));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const errs = validate(form, {
       name: [isRequired],
       category: [isRequired],
@@ -185,26 +539,109 @@ export function ProductList() {
     }
     if (!selectedProduct) return;
 
-    const updatedMapper = (p: Product) => {
-      if (p.id !== selectedProduct.id) return p;
-      return {
-        ...p,
-        code: form.code,
-        sku: form.code,
-        name: form.name,
-        category: form.category as ProductCategory,
-        categoryLabel: PRODUCT_CATEGORY_LABELS[form.category] || "",
-        unit: form.unit,
-        description: form.description,
-        brand: form.brand || "",
-        updatedAt: new Date().toISOString().split("T")[0],
-      };
+    let newVariants: Variant[];
+    if (attributes.length === 0) {
+      const existing = selectedProduct.variants[0];
+      const impPrice = Number(String(form.importPrice || 0).replace(/\./g, ""));
+      const salPrice = Number(String(form.salePrice || 0).replace(/\./g, ""));
+      newVariants = [{
+        id: existing?.id || "temp-0",
+        sku: existing?.sku || form.code || "",
+        importPrice: impPrice,
+        salePrice: salPrice,
+        stock: existing?.stock || 0,
+        size: undefined,
+        color: undefined,
+        material: undefined,
+        note: existing?.note || "",
+        status: form.status,
+      }];
+    } else {
+      const colors = attributes.find((a) => a.name === "Màu sắc")?.values || [];
+      const sizes = attributes.find((a) => a.name === "Kích thước")?.values || [];
+      const materials = attributes.find((a) => a.name === "Chất liệu")?.values || [];
+
+      newVariants = visibleVariants.map((vv: VariantRow, idx: number) => {
+        const sizeVal = sizes.length > 0 ? vv.values[attributes.findIndex(a => a.name === "Kích thước")] : "";
+        const colorVal = colors.length > 0 ? vv.values[attributes.findIndex(a => a.name === "Màu sắc")] : "";
+        const materialVal = materials.length > 0 ? vv.values[attributes.findIndex(a => a.name === "Chất liệu")] : "";
+
+        const existing = selectedProduct.variants.find(
+          (v) =>
+            (sizeVal ? v.size === sizeVal : !v.size) &&
+            (colorVal ? v.color === colorVal : !v.color) &&
+            (materialVal ? v.material === materialVal : !v.material)
+        );
+
+        const override = variantPriceOverrides[vv.label];
+        const impPrice = override?.importPrice ? Number(override.importPrice.replace(/\./g, "")) : Number(form.importPrice || 0);
+        const salePrice = override?.salePrice ? Number(override.salePrice.replace(/\./g, "")) : Number(form.salePrice || 0);
+
+        return {
+          id: existing?.id || `temp-${idx}`,
+          sku: existing?.sku || `${form.code}-${idx + 1}`,
+          importPrice: impPrice,
+          salePrice: salePrice,
+          stock: existing?.stock || 0,
+          size: sizeVal || undefined,
+          color: colorVal || undefined,
+          material: materialVal || undefined,
+          note: existing?.note || "",
+          status: form.status,
+        };
+      });
+    }
+
+    // Build the backend payload matching ProductUpdateRequestDto
+    const payload: ProductUpdatePayload = {
+      name: form.name,
+      categoryId: Number(form.category),
+      brand: form.brand || "",
+      unit: form.unit,
+      description: form.description || "",
+      status: form.status,
+      option1Name: attributes[0]?.name || null,
+      option2Name: attributes[1]?.name || null,
+      option3Name: attributes[2]?.name || null,
+      variants: newVariants.map((v) => {
+        const getValByName = (name: string | null | undefined) => {
+          if (!name) return null;
+          const lower = name.toLowerCase();
+          if (lower.includes("màu") || lower.includes("color")) return v.color || null;
+          if (lower.includes("kích thước") || lower.includes("size")) return v.size || null;
+          if (lower.includes("chất liệu") || lower.includes("material")) return v.material || null;
+          return null;
+        };
+
+        const idNum = Number(v.id);
+        return {
+          id: isNaN(idNum) || idNum > 1e13 ? null : idNum,
+          sku: v.sku || null,
+          option1Value: getValByName(attributes[0]?.name),
+          option2Value: getValByName(attributes[1]?.name),
+          option3Value: getValByName(attributes[2]?.name),
+          purchasePrice: v.importPrice,
+          salePrice: v.salePrice,
+          status: v.status || "ACTIVE",
+        };
+      }),
     };
 
-    setProducts((prev) => prev.map(updatedMapper));
+    try {
+      const responseData = await updateProduct(selectedProduct.id, payload);
+      const updatedProductFromApi = mapBackendProductToFrontend(responseData);
 
-    showToast("Cập nhật sản phẩm thành công!", "success");
-    closeAllModals();
+      setProducts((prev) =>
+        prev.map((p) => (p.id === selectedProduct.id ? updatedProductFromApi : p))
+      );
+
+      showToast("Cập nhật sản phẩm thành công!", "success");
+      closeAllModals();
+      triggerRefresh();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật sản phẩm:", err);
+      showToast("Cập nhật sản phẩm thất bại", "error");
+    }
   };
 
   const closeAllModals = () => {
@@ -215,14 +652,29 @@ export function ProductList() {
 
   const isFormUnchanged = () => {
     if (!selectedProduct) return true;
+
+    // Kiểm tra thuộc tính thay đổi
+    const currentAttrs: ProductAttribute[] = [];
+    const sizes = Array.from(new Set(selectedProduct.variants.map((v) => v.size).filter(Boolean))) as string[];
+    const colors = Array.from(new Set(selectedProduct.variants.map((v) => v.color).filter(Boolean))) as string[];
+    const materials = Array.from(new Set(selectedProduct.variants.map((v) => v.material).filter(Boolean))) as string[];
+
+    if (colors.length > 0) currentAttrs.push({ name: "Màu sắc", values: colors });
+    if (sizes.length > 0) currentAttrs.push({ name: "Kích thước", values: sizes });
+    if (materials.length > 0) currentAttrs.push({ name: "Chất liệu", values: materials });
+
+    const attrsChanged = JSON.stringify(attributes) !== JSON.stringify(currentAttrs);
+
     return (
+      !attrsChanged &&
       form.code === selectedProduct.code &&
       form.sku === selectedProduct.sku &&
       form.name === selectedProduct.name &&
       form.category === selectedProduct.category &&
       form.unit === (selectedProduct.unit || "Cái") &&
       form.description === (selectedProduct.description || "") &&
-      form.brand === (selectedProduct.brand || "")
+      form.brand === (selectedProduct.brand || "") &&
+      form.status === (selectedProduct.status || "ACTIVE")
     );
   };
 
@@ -236,18 +688,17 @@ export function ProductList() {
       material: variant.material || "",
       stock: String(variant.stock),
       note: variant.note || "",
+      status: variant.status || "ACTIVE",
     });
     setErrors({});
     setSelectedVariant(variant);
     setIsVariantEditOpen(true);
   };
 
-  const handleVariantSave = () => {
+  const handleVariantSave = async () => {
     const errs = validate(variantForm, {
       importPrice: [(v) => isPositiveNumber(v)],
       salePrice: [(v) => isPositiveNumber(v)],
-      stock: [(v) => isPositiveNumber(v)],
-      note: [isRequired],
     });
 
     if (Object.keys(errs).length) {
@@ -256,70 +707,68 @@ export function ProductList() {
     }
     if (!selectedProduct || !selectedVariant) return;
 
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== selectedProduct.id) return p;
+    // Check duplication across other variants
+    const isDuplicate = selectedProduct.variants.some((v) => {
+      if (v.id === selectedVariant.id) return false;
 
-        const updatedVariants = p.variants.map((v) => {
-          if (v.id !== selectedVariant.id) return v;
-          return {
-            ...v,
-            sku: variantForm.sku,
-            importPrice: Number(variantForm.importPrice),
-            salePrice: Number(variantForm.salePrice),
-            size: variantForm.size || undefined,
-            color: variantForm.color || undefined,
-            material: variantForm.material || undefined,
-            stock: Number(variantForm.stock),
-            note: variantForm.note || "",
-          };
-        });
+      const vSize = v.size || "";
+      const vColor = v.color || "";
+      const vMaterial = v.material || "";
 
-        const totalStock = updatedVariants.reduce((sum, v) => sum + v.stock, 0);
-        const importPrices = updatedVariants.map((v) => v.importPrice);
-        const salePrices = updatedVariants.map((v) => v.salePrice);
-        const minImportPrice = importPrices.length
-          ? Math.min(...importPrices)
-          : 0;
-        const minSalePrice = salePrices.length ? Math.min(...salePrices) : 0;
+      const formSize = variantForm.size || "";
+      const formColor = variantForm.color || "";
+      const formMaterial = variantForm.material || "";
 
-        const uniqueSizes = Array.from(
-          new Set(updatedVariants.map((v) => v.size).filter(Boolean)),
-        );
-        const uniqueColors = Array.from(
-          new Set(updatedVariants.map((v) => v.color).filter(Boolean)),
-        );
-        const uniqueMaterials = Array.from(
-          new Set(updatedVariants.map((v) => v.material).filter(Boolean)),
-        );
+      return (
+        vSize.trim().toLowerCase() === formSize.trim().toLowerCase() &&
+        vColor.trim().toLowerCase() === formColor.trim().toLowerCase() &&
+        vMaterial.trim().toLowerCase() === formMaterial.trim().toLowerCase()
+      );
+    });
 
-        const sizeLabel =
-          uniqueSizes.length > 1 ? "Nhiều kích thước" : uniqueSizes[0] || "—";
-        const colorLabel =
-          uniqueColors.length > 1 ? "Nhiều màu sắc" : uniqueColors[0] || "—";
-        const materialLabel =
-          uniqueMaterials.length > 1
-            ? "Nhiều chất liệu"
-            : uniqueMaterials[0] || "—";
+    if (isDuplicate) {
+      showToast("Không thể lưu vì phiên bản với các thuộc tính này đã tồn tại!", "error");
+      return;
+    }
 
-        const updatedProduct = {
-          ...p,
-          importPrice: minImportPrice,
-          salePrice: minSalePrice,
-          stock: totalStock,
-          size: sizeLabel,
-          color: colorLabel,
-          material: materialLabel,
-          variants: updatedVariants,
-        };
+    try {
+      const opt1Name = selectedProduct.option1Name;
+      const opt2Name = selectedProduct.option2Name;
+      const opt3Name = selectedProduct.option3Name;
 
-        setSelectedProduct(updatedProduct);
-        return updatedProduct;
-      }),
-    );
+      const getValByName = (name: string | null | undefined) => {
+        if (!name) return null;
+        const lower = name.toLowerCase();
+        if (lower.includes("màu") || lower.includes("color")) return variantForm.color;
+        if (lower.includes("kích thước") || lower.includes("size")) return variantForm.size;
+        if (lower.includes("chất liệu") || lower.includes("material")) return variantForm.material;
+        return null;
+      };
 
-    showToast("Cập nhật phiên bản thành công!", "success");
-    closeVariantModals();
+      const payload: VariantUpdatePayload = {
+        option1Value: getValByName(opt1Name),
+        option2Value: getValByName(opt2Name),
+        option3Value: getValByName(opt3Name),
+        purchasePrice: Number(variantForm.importPrice),
+        salePrice: Number(variantForm.salePrice),
+        status: variantForm.status,
+      };
+
+      const updatedProductFromApi = await updateVariant(selectedVariant.id, payload);
+      const mappedProduct = mapBackendProductToFrontend(updatedProductFromApi);
+
+      setProducts((prev) =>
+        prev.map((p) => (p.id === selectedProduct.id ? mappedProduct : p))
+      );
+      setSelectedProduct(mappedProduct);
+
+      showToast("Cập nhật phiên bản thành công!", "success");
+      closeVariantModals();
+      triggerRefresh();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật phiên bản:", err);
+      showToast("Cập nhật phiên bản thất bại!", "error");
+    }
   };
 
   const closeVariantModals = () => {
@@ -331,32 +780,76 @@ export function ProductList() {
   // Xóa chọn khi đóng hoặc đổi sản phẩm
   const resetChecked = () => setCheckedVariantIds(new Set());
 
-  const handleDeleteProduct = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+  const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
+
+  const handleDeleteProduct = async () => {
+    if (!deleteProductId) return;
+    const targetProduct = products.find((p) => p.id === deleteProductId);
+    if (targetProduct && targetProduct.variants.some((v) => v.stock > 0)) {
+      showToast("Không thể xóa vì tồn tại hóa đơn nhập hàng!", "warning");
+      setDeleteProductId(null);
+      return;
+    }
+
+    try {
+      await deleteProduct(deleteProductId);
       showToast("Đã xóa sản phẩm", "success");
-      if (selectedProduct?.id === id) {
-        setSelectedProduct(null);
-      }
+      if (selectedProduct?.id === deleteProductId) setSelectedProduct(null);
+      triggerRefresh();
+    } catch {
+      showToast("Xóa sản phẩm thất bại", "error");
+    } finally {
+      setDeleteProductId(null);
     }
   };
 
-  const handleDeleteVariant = (e: React.MouseEvent, variantId: string) => {
-    e.stopPropagation();
-    if (window.confirm("Bạn có chắc chắn muốn xóa phiên bản này?")) {
-      setProducts((prev) => prev.map(p => {
-        if (p.id !== selectedProduct?.id) return p;
-        return {
-          ...p,
-          variants: p.variants.filter(v => v.id !== variantId)
-        };
-      }));
-      setSelectedProduct(prev => prev ? {
-        ...prev,
-        variants: prev.variants.filter(v => v.id !== variantId)
-      } : null);
+  const handleDeleteVariant = async () => {
+    if (!deleteVariantId) return;
+    try {
+      await deleteVariant(deleteVariantId);
+      setSelectedProduct((prev) =>
+        prev
+          ? {
+              ...prev,
+              variants: prev.variants.filter((v) => v.id !== deleteVariantId),
+            }
+          : null
+      );
       showToast("Đã xóa phiên bản", "success");
+      triggerRefresh();
+    } catch {
+      showToast("Xóa phiên bản thất bại", "error");
+    } finally {
+      setDeleteVariantId(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const selectedVariants = selectedProduct?.variants.filter((v) => checkedVariantIds.has(v.id)) || [];
+    const withStock = selectedVariants.filter((v) => v.stock > 0);
+    if (withStock.length > 0) {
+      showToast("Không thể xóa vì tồn tại hóa đơn nhập hàng!", "warning");
+      setIsBulkDeleteConfirmOpen(false);
+      return;
+    }
+
+    try {
+      await deleteVariants([...checkedVariantIds]);
+      setSelectedProduct((prev) =>
+        prev
+          ? {
+              ...prev,
+              variants: prev.variants.filter((v) => !checkedVariantIds.has(v.id)),
+            }
+          : null
+      );
+      showToast(`Đã xóa ${checkedVariantIds.size} phiên bản`, "success");
+      setCheckedVariantIds(new Set());
+      triggerRefresh();
+    } catch {
+      showToast("Xóa phiên bản thất bại", "error");
+    } finally {
+      setIsBulkDeleteConfirmOpen(false);
     }
   };
 
@@ -378,15 +871,15 @@ export function ProductList() {
   };
 
   const openBulkEdit = () => {
-    setBulkForm({ importPrice: "", salePrice: "" });
+    setBulkForm({ importPrice: "", salePrice: "", status: "" });
     setBulkErrors({});
     setIsBulkEditOpen(true);
   };
 
-  const handleBulkSave = () => {
+  const handleBulkSave = async () => {
     const errs: Record<string, string> = {};
-    if (!bulkForm.importPrice && !bulkForm.salePrice) {
-      errs.importPrice = "Vui lòng nhập ít nhất một giá để cập nhật";
+    if (!bulkForm.importPrice && !bulkForm.salePrice && !bulkForm.status) {
+      errs.importPrice = "Vui lòng nhập giá hoặc chọn trạng thái để cập nhật";
     }
     if (
       bulkForm.importPrice &&
@@ -413,63 +906,51 @@ export function ProductList() {
       ? Number(bulkForm.salePrice.replace(/\./g, ""))
       : null;
 
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== selectedProduct.id) return p;
-        const updatedVariants = p.variants.map((v) => {
-          if (!checkedVariantIds.has(v.id)) return v;
-          return {
-            ...v,
-            ...(newImport !== null ? { importPrice: newImport } : {}),
-            ...(newSale !== null ? { salePrice: newSale } : {}),
-          };
-        });
-        const importPrices = updatedVariants.map((v) => v.importPrice);
-        const salePrices = updatedVariants.map((v) => v.salePrice);
-        const updated = {
-          ...p,
-          importPrice: importPrices.length ? Math.min(...importPrices) : 0,
-          salePrice: salePrices.length ? Math.min(...salePrices) : 0,
-          variants: updatedVariants,
-        };
-        setSelectedProduct(updated);
-        return updated;
-      }),
-    );
+    try {
+      await bulkUpdateVariantPrices({
+        variantIds: [...checkedVariantIds].map(Number),
+        purchasePrice: newImport,
+        salePrice: newSale,
+        status: bulkForm.status ? bulkForm.status.toUpperCase() : null,
+      });
 
-    showToast(`Đã cập nhật ${checkedVariantIds.size} phiên bản!`, "success");
-    setIsBulkEditOpen(false);
-    setCheckedVariantIds(new Set());
-  };
-
-  const handleBulkDelete = () => {
-    if (
-      window.confirm(
-        `Bạn có chắc chắn muốn xóa ${checkedVariantIds.size} phiên bản đã chọn?`
-      )
-    ) {
       setProducts((prev) =>
         prev.map((p) => {
-          if (p.id !== selectedProduct?.id) return p;
-          const updatedVariants = p.variants.filter(
-            (v) => !checkedVariantIds.has(v.id)
-          );
+          if (p.id !== selectedProduct.id) return p;
+          const updatedVariants = p.variants.map((v) => {
+            if (!checkedVariantIds.has(v.id)) return v;
+            return {
+              ...v,
+              ...(newImport !== null ? { importPrice: newImport } : {}),
+              ...(newSale !== null ? { salePrice: newSale } : {}),
+              ...(bulkForm.status ? { status: bulkForm.status } : {}),
+            };
+          });
           const importPrices = updatedVariants.map((v) => v.importPrice);
           const salePrices = updatedVariants.map((v) => v.salePrice);
+          const hasActiveVariant = updatedVariants.some((v) => v.status === "ACTIVE" || v.status === "active" || !v.status);
           const updated = {
             ...p,
             importPrice: importPrices.length ? Math.min(...importPrices) : 0,
             salePrice: salePrices.length ? Math.min(...salePrices) : 0,
             variants: updatedVariants,
+            status: hasActiveVariant ? "ACTIVE" : "INACTIVE",
           };
           setSelectedProduct(updated);
           return updated;
         })
       );
-      showToast(`Đã xóa ${checkedVariantIds.size} phiên bản`, "success");
+
+      showToast(`Đã cập nhật ${checkedVariantIds.size} phiên bản!`, "success");
+      setIsBulkEditOpen(false);
       setCheckedVariantIds(new Set());
+    } catch (err) {
+      console.error("Lỗi khi cập nhật giá hàng loạt:", err);
+      showToast("Cập nhật giá hàng loạt thất bại", "error");
     }
   };
+
+
 
   const isVariantFormUnchanged = () => {
     if (!selectedVariant) return true;
@@ -480,27 +961,13 @@ export function ProductList() {
       variantForm.size === (selectedVariant.size || "") &&
       variantForm.color === (selectedVariant.color || "") &&
       variantForm.material === (selectedVariant.material || "") &&
-      variantForm.stock === String(selectedVariant.stock) &&
-      variantForm.note === (selectedVariant.note || "")
+      variantForm.status === (selectedVariant.status || "ACTIVE")
     );
   };
 
   const renderVariantEditForm = () => (
     <div className={styles.form}>
       <div className={styles.formGrid}>
-        <Input
-          id="var-stock"
-          label="Tồn kho"
-          required
-          value={variantForm.stock}
-          onChange={(e) => {
-            const rawVal = e.target.value.replace(/[^0-9]/g, "");
-            setVariantForm((prev) => ({ ...prev, stock: rawVal }));
-            if (errors.stock) setErrors((prev) => ({ ...prev, stock: "" }));
-          }}
-          error={errors.stock}
-          placeholder="0"
-        />
 
         <Input
           id="var-importPrice"
@@ -567,27 +1034,19 @@ export function ProductList() {
           }
           placeholder="Nhập chất liệu"
         />
-      </div>
-      <div className={styles.formGroup}>
-        <label htmlFor="var-note" className={styles.label}>
-          Ghi chú <span style={{ color: "var(--color-danger)" }}>*</span>
-        </label>
-        <textarea
-          id="var-note"
-          className={[
-            styles.textarea,
-            errors.note ? styles.textareaError : "",
-          ].join(" ")}
-          rows={3}
-          value={variantForm.note}
-          onChange={(e) => {
-            setVariantForm((prev) => ({ ...prev, note: e.target.value }));
-            if (errors.note) setErrors((prev) => ({ ...prev, note: "" }));
-          }}
-          placeholder="Nhập ghi chú cho phiên bản này..."
-          maxLength={500}
+        <Select
+          id="var-status"
+          label="Trạng thái"
+          required
+          options={[
+            { value: "ACTIVE", label: "Đang bán" },
+            { value: "INACTIVE", label: "Ngừng bán" },
+          ]}
+          value={variantForm.status}
+          onChange={(e) =>
+            setVariantForm((prev) => ({ ...prev, status: e.target.value }))
+          }
         />
-        {errors.note && <span className={styles.errorMsg}>{errors.note}</span>}
       </div>
     </div>
   );
@@ -629,6 +1088,51 @@ export function ProductList() {
           error={errors.unit}
           placeholder="VD: Cái, Bộ, Đôi..."
         />
+        <Select
+          id="status"
+          label="Trạng thái"
+          required
+          options={[
+            { value: "ACTIVE", label: "Đang bán" },
+            { value: "INACTIVE", label: "Ngừng bán" },
+          ]}
+          value={form.status}
+          onChange={handleChange("status")}
+        />
+        {attributes.length === 0 && (
+          <>
+            <Input
+              id="importPrice"
+              label="Giá nhập"
+              required
+              value={formatInputNumber(form.importPrice)}
+              onChange={(e) => {
+                const rawVal = e.target.value.replace(/\./g, "");
+                setForm((prev) => ({ ...prev, importPrice: rawVal }));
+                if (errors.importPrice)
+                  setErrors((prev) => ({ ...prev, importPrice: "" }));
+              }}
+              error={errors.importPrice}
+              placeholder="0"
+              suffix="đ"
+            />
+            <Input
+              id="salePrice"
+              label="Giá bán"
+              required
+              value={formatInputNumber(form.salePrice)}
+              onChange={(e) => {
+                const rawVal = e.target.value.replace(/\./g, "");
+                setForm((prev) => ({ ...prev, salePrice: rawVal }));
+                if (errors.salePrice)
+                  setErrors((prev) => ({ ...prev, salePrice: "" }));
+              }}
+              error={errors.salePrice}
+              placeholder="0"
+              suffix="đ"
+            />
+          </>
+        )}
       </div>
 
       <div className={styles.formGroup}>
@@ -645,6 +1149,303 @@ export function ProductList() {
           maxLength={1000}
         />
       </div>
+
+      <div style={{ marginTop: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+          <h4 style={{ fontWeight: 600, fontSize: "var(--font-md)" }}>Thuộc tính sản phẩm</h4>
+          {attributes.length < 3 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="fi fi-rr-add"
+              onClick={addAttribute}
+              type="button"
+            >
+              Thêm thuộc tính
+            </Button>
+          )}
+        </div>
+
+        {attributes.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "16px",
+              color: "var(--color-subtext)",
+              fontSize: "var(--font-sm)",
+              backgroundColor: "var(--color-bg)",
+              border: "1px dashed var(--color-border)",
+              borderRadius: "var(--radius-md)"
+            }}
+          >
+            Sản phẩm này chưa có thuộc tính (VD: kích thước, màu sắc). Nhấp "Thêm thuộc tính" để cấu hình.
+          </div>
+        ) : (
+          <div className={styles.attrList}>
+            {attributes.map((attr, index) => (
+              <div key={index} className={styles.attrRow}>
+                <div className={styles.attrNameGroup}>
+                  <Input
+                    id={`attr-name-${index}`}
+                    label={`Tên thuộc tính ${index + 1}`}
+                    placeholder="VD: Màu sắc, Kích thước..."
+                    value={attr.name}
+                    onChange={(e) =>
+                      updateAttributeName(index, e.target.value)
+                    }
+                  />
+                </div>
+                <div className={styles.attrValueGroup}>
+                  <label className={styles.label}>
+                    Giá trị thuộc tính
+                  </label>
+                  <div
+                    className={styles.tagsInputWrapper}
+                    onClick={() =>
+                      document
+                        .getElementById(`attr-input-${index}`)
+                        ?.focus()
+                    }
+                  >
+                    {attr.values.map((val, valIdx) => (
+                      <span key={valIdx} className={styles.tag}>
+                        {val}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeAttributeValue(index, valIdx)
+                          }
+                          aria-label="Xóa"
+                        >
+                          <i className="fi fi-rr-cross-small" />
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      id={`attr-input-${index}`}
+                      type="text"
+                      className={styles.tagInput}
+                      placeholder={
+                        attr.values.length === 0
+                          ? "Nhập giá trị..."
+                          : "Thêm..."
+                      }
+                      value={tagInputs[index]}
+                      onChange={(e) =>
+                        updateTagInput(index, e.target.value)
+                      }
+                      onKeyDown={(e) => handleTagKeyDown(e, index)}
+                      onBlur={() => handleTagBlur(index)}
+                    />
+                  </div>
+                </div>
+                <div className={styles.attrDeleteGroup}>
+                  <Button
+                    variant="danger"
+                    onClick={() => removeAttribute(index)}
+                    icon="fi fi-rr-trash"
+                    type="button"
+                  >
+                    Xóa
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {visibleVariants.length > 0 && (
+        <div style={{ marginTop: "16px" }}>
+          <h4 style={{ fontWeight: 600, fontSize: "var(--font-md)", marginBottom: "8px" }}>
+            Danh sách biến thể ({visibleVariants.length})
+          </h4>
+          <div className={styles.variantsTableWrapper}>
+            <table className={styles.variantsTable}>
+              <thead>
+                <tr>
+                  <th className={styles.colStt}>STT</th>
+                  {attributes
+                    .filter((a) => a.name.trim() && a.values.length > 0)
+                    .map((a, i) => (
+                      <th key={i}>{a.name}</th>
+                    ))}
+                  <th className={styles.colPrice}>Giá nhập</th>
+                  <th className={styles.colPrice}>Giá bán</th>
+                  <th style={{ textAlign: "center", width: "100px" }}>Tồn kho</th>
+                  <th className={styles.colActions}>Cập nhật</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleVariants.map((v: VariantRow, idx: number) => {
+                  const override = variantPriceOverrides[v.label];
+                  const displayImport =
+                    override?.importPrice || form.importPrice;
+                  const displaySale =
+                    override?.salePrice || form.salePrice;
+                  const isEditing = editingVariantLabel === v.label;
+
+                  const sizeVal = v.values[attributes.findIndex(a => a.name === "Kích thước")] || "";
+                  const colorVal = v.values[attributes.findIndex(a => a.name === "Màu sắc")] || "";
+                  const materialVal = v.values[attributes.findIndex(a => a.name === "Chất liệu")] || "";
+
+                  const existing = selectedProduct?.variants.find(
+                    (vrt) =>
+                      (sizeVal ? vrt.size === sizeVal : !vrt.size) &&
+                      (colorVal ? vrt.color === colorVal : !vrt.color) &&
+                      (materialVal ? vrt.material === materialVal : !vrt.material)
+                  );
+                  const stock = existing?.stock || 0;
+                  return (
+                    <tr
+                      key={v.label}
+                      className={
+                        isEditing ? styles.variantRowEditing : ""
+                      }
+                    >
+                      <td className={styles.variantIndex}>{idx + 1}</td>
+                      {v.values.map((val: string, vi: number) => (
+                        <td key={vi}>
+                          <span className={styles.variantTag}>
+                            {val}
+                          </span>
+                        </td>
+                      ))}
+                      <td className={styles.colPrice}>
+                        {isEditing ? (
+                          <input
+                            className={styles.priceInput}
+                            type="text"
+                            value={formatInputNumber(
+                              editingPrices.importPrice,
+                            )}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                                .replace(/\./g, "")
+                                .replace(/[^0-9]/g, "");
+                              setEditingPrices((p) => ({
+                                ...p,
+                                importPrice: raw,
+                              }));
+                            }}
+                            placeholder="0"
+                          />
+                        ) : (
+                          <span
+                            className={
+                              override?.importPrice
+                                ? styles.priceOverride
+                                : ""
+                            }
+                          >
+                            {displayImport
+                              ? new Intl.NumberFormat("vi-VN").format(
+                                  Number(displayImport),
+                                ) + " VND"
+                              : "—"}
+                          </span>
+                        )}
+                      </td>
+                      <td className={styles.colPrice}>
+                        {isEditing ? (
+                          <input
+                            className={styles.priceInput}
+                            type="text"
+                            value={formatInputNumber(
+                              editingPrices.salePrice,
+                            )}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                                .replace(/\./g, "")
+                                .replace(/[^0-9]/g, "");
+                              setEditingPrices((p) => ({
+                                ...p,
+                                salePrice: raw,
+                              }));
+                            }}
+                            placeholder="0"
+                          />
+                        ) : (
+                          <span
+                            className={
+                              override?.salePrice
+                                ? styles.priceOverride
+                                : ""
+                            }
+                          >
+                            {displaySale
+                              ? new Intl.NumberFormat("vi-VN").format(
+                                  Number(displaySale),
+                                ) + " VND"
+                              : "—"}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <span
+                          className={[
+                            styles.variantStockBadge,
+                            stock < 20 ? styles.variantLowStock : "",
+                          ].join(" ")}
+                        >
+                          {stock}
+                        </span>
+                      </td>
+                      <td className={styles.colActions}>
+                        {isEditing ? (
+                          <div className={styles.actionBtns}>
+                            <button
+                              type="button"
+                              className={styles.actionBtn}
+                              onClick={() => confirmEditVariant(v.label)}
+                              title="Lưu"
+                            >
+                              <i className="fi fi-rr-check" />
+                            </button>
+                            <button
+                              type="button"
+                              className={[styles.actionBtn, styles.actionBtnDanger].join(" ")}
+                              onClick={cancelEditVariant}
+                              title="Hủy"
+                            >
+                              <i className="fi fi-rr-cross" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={styles.actionBtns}>
+                            <button
+                              type="button"
+                              className={styles.actionBtn}
+                              onClick={() => startEditVariant(v)}
+                              title="Sửa giá"
+                            >
+                              <i className="fi fi-rr-edit" />
+                            </button>
+                            <button
+                              type="button"
+                              className={[styles.actionBtn, styles.actionBtnDanger].join(" ")}
+                              onClick={() => {
+                                if (stock > 0) {
+                                  showToast("Không thể xóa phiên bản này vì tồn tại hóa đơn nhập hàng!", "warning");
+                                } else {
+                                  removeVariant(v.label);
+                                }
+                              }}
+                              title="Xóa biến thể"
+                            >
+                              <i className="fi fi-rr-trash" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -691,6 +1492,26 @@ export function ProductList() {
       ),
     },
     {
+      key: "status",
+      label: "Trạng thái",
+      width: "120px",
+      align: "center",
+      render: (val) => {
+        const statusStr = String(val).toUpperCase();
+        const isActive = statusStr === "ACTIVE";
+        return (
+          <span
+            className={[
+              styles.statusBadge,
+              isActive ? styles.statusActive : styles.statusInactive,
+            ].join(" ")}
+          >
+            {isActive ? "Đang bán" : "Ngừng bán"}
+          </span>
+        );
+      },
+    },
+    {
       key: "id",
       label: "Hành động",
       width: "180px",
@@ -709,7 +1530,14 @@ export function ProductList() {
             variant="danger"
             size="sm"
             icon="fi fi-rr-trash"
-            onClick={(e) => handleDeleteProduct(e, row.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (row.variants.some((v) => v.stock > 0)) {
+                showToast("Không thể xóa vì tồn tại hóa đơn nhập hàng!", "warning");
+              } else {
+                setDeleteProductId(row.id);
+              }
+            }}
           >
             Xóa
           </Button>
@@ -805,9 +1633,10 @@ export function ProductList() {
                 "Thương hiệu": selectedProduct.brand || "—",
                 "Đơn vị tính": selectedProduct.unit,
                 "Tổng tồn kho": selectedProduct.stock,
-                "Ngày tạo": selectedProduct.createdAt,
-                "Ngày cập nhật":
-                  selectedProduct.updatedAt || selectedProduct.createdAt,
+                "Ngày tạo": formatDateTime(selectedProduct.createdAt),
+                "Ngày cập nhật": formatDateTime(
+                  selectedProduct.updatedAt || selectedProduct.createdAt
+                ),
                 "Mô tả": selectedProduct.description || "—",
               }).map(([k, v]) => {
                 const isFullWidth = k === "Mô tả";
@@ -856,7 +1685,15 @@ export function ProductList() {
                           size="sm"
                           variant="danger"
                           icon="fi fi-rr-trash"
-                          onClick={handleBulkDelete}
+                          onClick={() => {
+                            const selectedVariants = selectedProduct?.variants.filter((v) => checkedVariantIds.has(v.id)) || [];
+                            const withStock = selectedVariants.filter((v) => v.stock > 0);
+                            if (withStock.length > 0) {
+                              showToast("Không thể xóa vì tồn tại hóa đơn nhập hàng!", "warning");
+                            } else {
+                              setIsBulkDeleteConfirmOpen(true);
+                            }
+                          }}
                         >
                           Xóa hàng loạt
                         </Button>
@@ -890,12 +1727,13 @@ export function ProductList() {
                             />
                           </th>
                           <th>Mã SKU</th>
-                          <th>Kích thước</th>
-                          <th>Màu sắc</th>
-                          <th>Chất liệu</th>
+                          {selectedProduct.option1Name && <th>{selectedProduct.option1Name}</th>}
+                          {selectedProduct.option2Name && <th>{selectedProduct.option2Name}</th>}
+                          {selectedProduct.option3Name && <th>{selectedProduct.option3Name}</th>}
                           <th style={{ textAlign: "right" }}>Giá nhập</th>
                           <th style={{ textAlign: "right" }}>Giá bán</th>
                           <th style={{ textAlign: "center" }}>Tồn kho</th>
+                          <th style={{ textAlign: "center" }}>Trạng thái</th>
                           <th style={{ textAlign: "center", width: "90px" }}>
                             Hành động
                           </th>
@@ -922,9 +1760,9 @@ export function ProductList() {
                             <td>
                               <code>{v.sku}</code>
                             </td>
-                            <td>{v.size || "—"}</td>
-                            <td>{v.color || "—"}</td>
-                            <td>{v.material || "—"}</td>
+                            {selectedProduct.option1Name && <td>{v.option1Value || "—"}</td>}
+                            {selectedProduct.option2Name && <td>{v.option2Value || "—"}</td>}
+                            {selectedProduct.option3Name && <td>{v.option3Value || "—"}</td>}
                             <td style={{ textAlign: "right" }}>
                               {formatCurrency(v.importPrice)}
                             </td>
@@ -942,6 +1780,16 @@ export function ProductList() {
                               </span>
                             </td>
                             <td style={{ textAlign: "center" }}>
+                              <span
+                                className={[
+                                  styles.statusBadge,
+                                  v.status?.toUpperCase() === "ACTIVE" ? styles.statusActive : styles.statusInactive,
+                                ].join(" ")}
+                              >
+                                {v.status?.toUpperCase() === "ACTIVE" ? "Đang bán" : "Ngừng bán"}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: "center" }}>
                               <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
                                 <Button
                                   variant="ghost"
@@ -951,14 +1799,21 @@ export function ProductList() {
                                 >
                                   Xem
                                 </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  icon="fi fi-rr-trash"
-                                  onClick={(e) => handleDeleteVariant(e, v.id)}
-                                >
-                                  Xóa
-                                </Button>
+                                  <Button
+                                    variant="danger"
+                                    size="sm"
+                                    icon="fi fi-rr-trash"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (v.stock > 0) {
+                                        showToast(`Không thể xóa phiên bản SKU ${v.sku} vì tồn tại hóa đơn nhập hàng!`, "warning");
+                                      } else {
+                                        setDeleteVariantId(v.id);
+                                      }
+                                    }}
+                                  >
+                                    Xóa
+                                  </Button>
                               </div>
                             </td>
                           </tr>
@@ -990,12 +1845,14 @@ export function ProductList() {
         )}
       </Modal>
 
-      {/* Bulk edit modal */}
+      {
+        // Modal sửa hàng loạt
+      }
       <Modal
         isOpen={isBulkEditOpen}
         onClose={() => setIsBulkEditOpen(false)}
         title={`Chỉnh sửa hàng loạt (${checkedVariantIds.size} phiên bản)`}
-        size="sm"
+        size="md"
       >
         <div className={styles.form}>
           <p className={styles.bulkHint}>
@@ -1037,6 +1894,19 @@ export function ProductList() {
               error={bulkErrors.salePrice}
               placeholder="0"
             />
+            <Select
+              id="bulk-status"
+              label="Trạng thái"
+              options={[
+                { value: "", label: "Giữ nguyên" },
+                { value: "ACTIVE", label: "Đang bán" },
+                { value: "INACTIVE", label: "Ngừng bán" },
+              ]}
+              value={bulkForm.status}
+              onChange={(e) =>
+                setBulkForm((p) => ({ ...p, status: e.target.value }))
+              }
+            />
           </div>
         </div>
         <div className={styles.modalActions}>
@@ -1053,7 +1923,7 @@ export function ProductList() {
         isOpen={isEditOpen}
         onClose={closeAllModals}
         title={`Chỉnh sửa sản phẩm: ${selectedProduct?.name ?? ""}`}
-        size="xl"
+        size="xxl"
       >
         {renderEditForm()}
         <div className={styles.modalActions}>
@@ -1141,6 +2011,37 @@ export function ProductList() {
           </Button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteProductId}
+        title="Xóa sản phẩm"
+        message={`Bạn có chắc chắn muốn xóa sản phẩm "${
+          products.find((p) => p.id === deleteProductId)?.name ?? ""
+        }"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa"
+        onConfirm={handleDeleteProduct}
+        onCancel={() => setDeleteProductId(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteVariantId}
+        title="Xóa phiên bản"
+        message={`Bạn có chắc chắn muốn xóa phiên bản "${
+          selectedProduct?.variants.find((v) => v.id === deleteVariantId)?.sku ?? ""
+        }"?`}
+        confirmLabel="Xóa"
+        onConfirm={handleDeleteVariant}
+        onCancel={() => setDeleteVariantId(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={isBulkDeleteConfirmOpen}
+        title="Xóa hàng loạt phiên bản"
+        message={`Bạn có chắc chắn muốn xóa ${checkedVariantIds.size} phiên bản đã chọn?`}
+        confirmLabel="Xóa"
+        onConfirm={handleBulkDelete}
+        onCancel={() => setIsBulkDeleteConfirmOpen(false)}
+      />
     </section>
   );
 }

@@ -19,6 +19,8 @@ import {
   type VariantCreateRequestDto,
   type ProductCreateRequestDto,
 } from "../../../services/product";
+import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
+import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import styles from "./CreateProduct.module.css";
 
 const INITIAL: ProductFormData = {
@@ -46,6 +48,21 @@ export function CreateProduct() {
   const { showToast } = useToast();
 
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
+
+  const isDirty = useMemo(() => {
+    if (isSubmitSuccessful) return false;
+    return (
+      form.name.trim() !== "" ||
+      (form.brand || "").trim() !== "" ||
+      String(form.importPrice).trim() !== "" ||
+      String(form.salePrice).trim() !== "" ||
+      form.description.trim() !== "" ||
+      attributes.length > 0
+    );
+  }, [form, attributes, isSubmitSuccessful]);
+
+  const blocker = useUnsavedChanges(isDirty);
 
   useEffect(() => {
     getCategories()
@@ -59,6 +76,12 @@ export function CreateProduct() {
         console.error("Failed to load categories:", err);
       });
   }, []);
+
+  useEffect(() => {
+    if (isSubmitSuccessful) {
+      navigate(ROUTES.WAREHOUSE_PRODUCTS);
+    }
+  }, [isSubmitSuccessful, navigate]);
 
   const categoryOptions = categories.map((cat) => ({
     value: String(cat.id),
@@ -402,7 +425,18 @@ export function CreateProduct() {
     try {
       await createProduct(payload);
       showToast("Tạo sản phẩm mới thành công!", "success");
-      navigate(ROUTES.WAREHOUSE_PRODUCTS);
+      
+      // Xóa sạch các trường dữ liệu và thuộc tính
+      const defaultCategory = categories.length > 0 ? String(categories[0].id) : "";
+      setForm({ ...INITIAL, category: defaultCategory });
+      setAttributes([]);
+      setTagInputs(["", "", ""]);
+      setVariantPriceOverrides({});
+      setRemovedVariantLabels(new Set());
+      setEditingVariantLabel(null);
+      setErrors({});
+
+      setIsSubmitSuccessful(true);
     } catch (err) {
       console.error("Failed to create product:", err);
       const errMsg =
@@ -411,6 +445,18 @@ export function CreateProduct() {
           : "Không thể tạo sản phẩm. Vui lòng thử lại!";
       showToast(errMsg, "error");
     }
+  };
+
+  const handleClearAll = () => {
+    const defaultCategory = categories.length > 0 ? String(categories[0].id) : "";
+    setForm({ ...INITIAL, category: defaultCategory });
+    setAttributes([]);
+    setTagInputs(["", "", ""]);
+    setVariantPriceOverrides({});
+    setRemovedVariantLabels(new Set());
+    setEditingVariantLabel(null);
+    setErrors({});
+    showToast("Đã xóa trắng tất cả các trường thông tin", "success");
   };
 
   return (
@@ -798,13 +844,13 @@ export function CreateProduct() {
                 <div className={styles.actions}>
                   <Button
                     variant="secondary"
-                    onClick={() => navigate(-1)}
-                    icon="fi fi-rr-arrow-left"
+                    onClick={handleClearAll}
+                    icon="fi fi-rr-trash"
                   >
-                    Hủy
+                    Xóa tất cả
                   </Button>
                   <Button onClick={handleSubmit} icon="fi fi-rr-check">
-                    Lưu sản phẩm
+                    Tạo sản phẩm
                   </Button>
                 </div>
               </CardBody>
@@ -812,6 +858,16 @@ export function CreateProduct() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={blocker.state === "blocked"}
+        title="Rời khỏi trang?"
+        message="Thông tin sản phẩm đang tạo chưa được lưu. Bạn có chắc chắn muốn rời khỏi trang này?"
+        confirmLabel="Rời đi"
+        cancelLabel="Ở lại"
+        onConfirm={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
+      />
     </section>
   );
 }

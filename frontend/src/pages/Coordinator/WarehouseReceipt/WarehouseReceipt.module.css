@@ -4,6 +4,10 @@
   gap: var(--space-6);
 }
 
+.tableBody {
+  padding: 0;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -479,4 +483,157 @@
   color: var(--color-subtext);
   margin-top: 4px;
   padding-left: 2px;
+}
+
+/* Payment Modal Styles */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.receiptCode {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: monospace;
+  display: block;
+}
+
+.supplierName {
+  font-size: var(--font-sm);
+  color: var(--color-subtext);
+  margin-top: 3px;
+}
+
+.amounts {
+  background-color: var(--color-hover);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.amountRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-base);
+  color: var(--color-subtext);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.remainRow {
+  border-bottom: none;
+}
+
+.paidAmount {
+  color: var(--color-success);
+  font-size: var(--font-md);
+}
+
+.remainAmount {
+  color: var(--color-danger);
+  font-size: var(--font-md);
+}
+
+.paySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.payLabel {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.methodGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.methodBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-3) var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-white);
+  color: var(--color-subtext);
+  font-size: var(--font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background-color var(--transition);
+}
+
+.methodBtn i {
+  font-size: 18px;
+}
+
+.methodBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.methodActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.payHint {
+  font-size: var(--font-xs);
+  color: var(--color-subtext);
+  margin-top: 2px;
+}
+
+.detailFooter {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.paid {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.partial {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.unpaid {
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
 }

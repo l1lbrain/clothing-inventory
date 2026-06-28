@@ -24,4 +24,5 @@ export interface SupplierFormData {
   email: string;
   phone: string;
   note: string;
+  status?: Status;
 }

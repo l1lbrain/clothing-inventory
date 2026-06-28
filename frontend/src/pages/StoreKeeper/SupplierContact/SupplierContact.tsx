@@ -4,25 +4,45 @@ import { Button } from "../../../components/Button/Button";
 import { useToast } from "../../../components/Toast/ToastContext";
 import { getSuppliersPage } from "../../../services/supplier";
 import type { Supplier } from "../../../types/supplier.types";
+import { Pagination } from "../../../components/Pagination/Pagination";
 import styles from "./SupplierContact.module.css";
 
 export function SupplierContact() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [allActiveSuppliers, setAllActiveSuppliers] = useState<Supplier[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const { showToast } = useToast();
 
   useEffect(() => {
-    const fetchSuppliers = async () => {
+    const fetchAllSuppliers = async () => {
       try {
-        const data = await getSuppliersPage(1);
-        setSuppliers(data.items);
+        const firstPage = await getSuppliersPage(1);
+        let all = [...firstPage.items];
+        const totalPages = firstPage.totalPages;
+        if (totalPages > 1) {
+          const promises = [];
+          for (let p = 2; p <= totalPages; p++) {
+            promises.push(getSuppliersPage(p));
+          }
+          const results = await Promise.all(promises);
+          results.forEach((res) => {
+            all = all.concat(res.items);
+          });
+        }
+        const activeOnly = all.filter((s) => s.status === "active");
+        setAllActiveSuppliers(activeOnly);
       } catch (err) {
         console.error("Failed to fetch contact suppliers:", err);
       }
     };
-    fetchSuppliers();
+    fetchAllSuppliers();
   }, []);
 
-  const activeSuppliers = suppliers.filter((s) => s.status === "active");
+  const totalElements = allActiveSuppliers.length;
+  const activeSuppliers = allActiveSuppliers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <section>
@@ -99,6 +119,17 @@ export function SupplierContact() {
               </CardBody>
             </Card>
           ))}
+        </div>
+
+        <div className={styles.paginationWrap}>
+          <Pagination
+            pagination={{
+              page: currentPage,
+              pageSize: pageSize,
+              total: totalElements,
+            }}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </div>
     </section>

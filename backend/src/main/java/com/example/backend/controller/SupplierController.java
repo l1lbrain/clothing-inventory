@@ -26,11 +26,6 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.getAllSuppliers(keyword, pageable));
     }
 
-    @GetMapping("/{code}")
-    public ResponseEntity<SupplierResponseDto> getSupplierByCode(@PathVariable String code) {
-        return ResponseEntity.ok(supplierService.getSupplierByCode(code));
-    }
-
     @PostMapping
     public ResponseEntity<SupplierResponseDto> createSupplier(@Valid @RequestBody SupplierRequestDto request) {
         return ResponseEntity.ok(supplierService.createSupplier(request));

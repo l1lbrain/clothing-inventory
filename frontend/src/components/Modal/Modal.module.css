@@ -37,6 +37,7 @@
 .md { max-width: 580px; }
 .lg { max-width: 780px; }
 .xl { max-width: 960px; }
+.xxl { max-width: 1200px; }
 
 .modalHeader {
   display: flex;

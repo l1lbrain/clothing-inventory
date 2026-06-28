@@ -14,7 +14,6 @@ public enum ErrorCode {
     CATEGORY_NOT_FOUND(404, "Category not found"),
     PRODUCT_NOT_FOUND(404, "Product not found"),
     VARIANT_NOT_FOUND(404, "Product variant not found"),
-    INVENTORY_NOT_FOUND(404, "Inventory data not found for this variant"),
     PURCHASE_ORDER_NOT_FOUND(404, "Purchase order not found"),
 
     CONFLICT_ACCOUNT(409, "Account already exists"),
@@ -30,7 +29,14 @@ public enum ErrorCode {
     UNAUTHORIZED_REFRESH_TOKEN(401, "Invalid refresh token"),
     INTERNAL_SERVER_ERROR(500, "Internal server error"),
     INSUFFICIENT_STOCK(400, "Insufficient stock to perform this operation"),
-    INVALID_PURCHASE_ORDER_STATUS_TRANSITION(400, "Invalid purchase order status transition");
+    INVALID_PURCHASE_ORDER_STATUS_TRANSITION(400, "Invalid purchase order status transition"),
+
+    // Deletion & Update Errors
+    CANNOT_DELETE_SUPPLIER_HAS_PURCHASE_ORDER(409, "Cannot delete supplier with existing purchase orders"),
+    CANNOT_DELETE_PRODUCT_HAS_TRANSACTIONS(409, "Cannot delete product because its variants have existing transactions"),
+    CANNOT_DELETE_VARIANT_HAS_TRANSACTIONS(409, "Cannot delete variant with existing transactions"),
+    CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS(409, "Cannot update variant with existing transactions");
+
 
     private final int status;
     private final String message;

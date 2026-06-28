@@ -20,6 +20,9 @@ export interface VariantResponseDto {
   createdAt: string;
   updatedAt: string;
   attributes?: Record<string, string>;
+  option1Value?: string | null;
+  option2Value?: string | null;
+  option3Value?: string | null;
 }
 
 export interface ProductVariantDetailResponseDto {
@@ -108,24 +111,46 @@ function mapBackendCategoryToFrontend(categoryName: string): {
   return { category: "phu_kien", categoryLabel: categoryName };
 }
 
-export function mapBackendVariantToFrontend(v: VariantResponseDto): Variant {
-  const size = getAttributeValue(v.attributes, [
+export function mapBackendVariantToFrontend(v: VariantResponseDto, p?: ProductResponseDto): Variant {
+  const option1Value = p?.option1Name && v.attributes ? v.attributes[p.option1Name] : null;
+  const option2Value = p?.option2Name && v.attributes ? v.attributes[p.option2Name] : null;
+  const option3Value = p?.option3Name && v.attributes ? v.attributes[p.option3Name] : null;
+
+  let size = getAttributeValue(v.attributes, [
     "size",
     "kích thước",
     "kich thuoc",
   ]);
-  const color = getAttributeValue(v.attributes, [
+  let color = getAttributeValue(v.attributes, [
     "color",
     "màu sắc",
     "mau sac",
     "màu",
     "mau",
   ]);
-  const material = getAttributeValue(v.attributes, [
+  let material = getAttributeValue(v.attributes, [
     "material",
     "chất liệu",
     "chat lieu",
   ]);
+
+  // Map option values to corresponding size/color/material using option names
+  if (p) {
+    const checkOpt = (name: string | undefined, val: string | null | undefined) => {
+      if (!name || !val) return;
+      const lower = name.toLowerCase();
+      if (lower.includes("kích thước") || lower.includes("kich thuoc") || lower.includes("size")) {
+        size = val;
+      } else if (lower.includes("màu") || lower.includes("mau") || lower.includes("color")) {
+        color = val;
+      } else if (lower.includes("chất liệu") || lower.includes("chat lieu") || lower.includes("material")) {
+        material = val;
+      }
+    };
+    checkOpt(p.option1Name, option1Value);
+    checkOpt(p.option2Name, option2Value);
+    checkOpt(p.option3Name, option3Value);
+  }
 
   return {
     id: String(v.id),
@@ -133,10 +158,14 @@ export function mapBackendVariantToFrontend(v: VariantResponseDto): Variant {
     importPrice: v.purchasePrice,
     salePrice: v.salePrice,
     stock: v.quantityOnHand || 0,
-    size,
-    color,
-    material,
+    size: size || "",
+    color: color || "",
+    material: material || "",
     note: "",
+    status: v.status,
+    option1Value,
+    option2Value,
+    option3Value,
   };
 }
 
@@ -145,7 +174,7 @@ export function mapBackendProductToFrontend(p: ProductResponseDto): Product {
     p.categoryName,
   );
   const variants = p.variants
-    ? p.variants.map(mapBackendVariantToFrontend)
+    ? p.variants.map((v) => mapBackendVariantToFrontend(v, p))
     : [];
 
   // Tổng tồn kho
@@ -188,13 +217,17 @@ export function mapBackendProductToFrontend(p: ProductResponseDto): Product {
     stock: totalStock,
     description: p.description || "",
     image: "",
-    createdAt: p.createdAt ? p.createdAt.split("T")[0] : "",
-    updatedAt: p.updatedAt ? p.updatedAt.split("T")[0] : "",
+    createdAt: p.createdAt || "",
+    updatedAt: p.updatedAt || "",
     size: sizeLabel,
     color: colorLabel,
     material: materialLabel,
     brand: p.brand || "",
+    status: p.status,
     variants,
+    option1Name: p.option1Name,
+    option2Name: p.option2Name,
+    option3Name: p.option3Name,
   };
 }
 
@@ -270,3 +303,116 @@ export async function getCategories(): Promise<CategoryResponseDto[]> {
     await apiFetch<ApiResponse<CategoryResponseDto[]>>("/categories");
   return response.data;
 }
+
+// Xóa sản phẩm theo id
+export async function deleteProduct(id: string): Promise<void> {
+  await apiFetch<void>(`/products/${id}`, { method: "DELETE" });
+}
+
+// Xóa các phiên bản (variants)
+export async function deleteVariants(ids: string[]): Promise<void> {
+  await apiFetch<void>("/products/variants", {
+    method: "DELETE",
+    body: JSON.stringify({ variantIds: ids.map(Number) }),
+  });
+}
+
+// Xóa một phiên bản (variant) theo id
+export async function deleteVariant(id: string): Promise<void> {
+  await deleteVariants([id]);
+}
+
+export interface VariantUpdateItemPayload {
+  id?: number | null;
+  sku?: string | null;
+  option1Value?: string | null;
+  option2Value?: string | null;
+  option3Value?: string | null;
+  purchasePrice: number;
+  salePrice: number;
+  status: string;
+}
+
+export interface ProductUpdatePayload {
+  name?: string;
+  categoryId?: number;
+  brand?: string;
+  unit?: string;
+  description?: string;
+  status?: string;
+  option1Name?: string | null;
+  option2Name?: string | null;
+  option3Name?: string | null;
+  variants?: VariantUpdateItemPayload[];
+}
+
+// Cập nhật sản phẩm dùng PUT
+export async function updateProduct(
+  id: string,
+  payload: ProductUpdatePayload
+): Promise<ProductResponseDto> {
+  const response = await apiFetch<ApiResponse<ProductResponseDto>>(
+    `/products/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }
+  );
+  return response.data;
+}
+
+// Cập nhật sản phẩm dùng PATCH
+export async function patchProduct(
+  id: string,
+  payload: Partial<ProductUpdatePayload>
+): Promise<ProductResponseDto> {
+  const response = await apiFetch<ApiResponse<ProductResponseDto>>(
+    `/products/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  );
+  return response.data;
+}
+
+export interface BulkUpdatePricePayload {
+  variantIds: number[];
+  purchasePrice?: number | null;
+  salePrice?: number | null;
+  status?: string | null;
+}
+
+// Cập nhật giá hàng loạt cho các phiên bản
+export async function bulkUpdateVariantPrices(
+  payload: BulkUpdatePricePayload
+): Promise<void> {
+  await apiFetch<void>("/products/variants/bulk-update-price", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface VariantUpdatePayload {
+  option1Value: string | null;
+  option2Value: string | null;
+  option3Value: string | null;
+  purchasePrice: number;
+  salePrice: number;
+  status: string;
+}
+
+export async function updateVariant(
+  id: string,
+  payload: VariantUpdatePayload
+): Promise<ProductResponseDto> {
+  const response = await apiFetch<ApiResponse<ProductResponseDto>>(
+    `/products/variants/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }
+  );
+  return response.data;
+}
+

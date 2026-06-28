@@ -7,6 +7,23 @@ export interface ReceiptItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  productId?: string;
+}
+
+export type PurchaseOrderStatus = "PENDING" | "APPROVED" | "CANCELLED" | "IMPORTED";
+
+export interface PurchaseOrder {
+  id: string;
+  code: string;
+  supplierId: string;
+  supplierName: string;
+  items: ReceiptItem[];
+  totalQuantity: number;
+  totalAmount: number;
+  status: PurchaseOrderStatus;
+  note: string;
+  createdAt: string;
+  approvedAt: string | null;
 }
 
 export interface WarehouseReceipt {
@@ -25,6 +42,7 @@ export interface WarehouseReceipt {
   createdAt: string;
   confirmedAt: string | null;
   isDraft: boolean;
+  fromOrderId?: string;
 }
 
 export interface PaymentRecord {

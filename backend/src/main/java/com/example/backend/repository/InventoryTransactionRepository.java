@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface InventoryTransactionRepository
         extends JpaRepository<InventoryTransaction, Long>, JpaSpecificationExecutor<InventoryTransaction> {
 
-    // Lấy nhanh lịch sử biến động kho của duy nhất một SKU cụ thể, sắp xếp theo thời gian mới nhất lên đầu
     Page<InventoryTransaction> findByVariantIdOrderByCreatedAtDesc(Long variantId, Pageable pageable);
+
+    boolean existsByVariantId(Long variantId);
 }

@@ -1,5 +1,6 @@
 package com.example.backend.dto.response;
 
+import com.example.backend.model.enums.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,13 +20,10 @@ public class VariantResponseDto {
     private String sku;
     private BigDecimal purchasePrice;
     private BigDecimal salePrice;
-    private String status;
+    private Integer quantityOnHand;
+    private Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    /**
-     * Bản đồ thuộc tính động kết hợp từ tên (Product) và giá trị (Variant)
-     * Ví dụ khi trả về: { "Màu sắc": "Đen", "Kích thước": "L" }
-     */
     private Map<String, String> attributes;
 }

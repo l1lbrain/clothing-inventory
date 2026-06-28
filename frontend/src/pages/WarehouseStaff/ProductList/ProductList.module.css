@@ -333,3 +333,239 @@
   border-left: 3px solid var(--color-primary);
 }
 
+.attrList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.attrRow {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  gap: var(--space-4);
+  align-items: end;
+  padding: var(--space-4);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.attrNameGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.attrValueGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attrDeleteGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attrDeleteGroup button {
+  height: 42px;
+}
+
+.tagsInputWrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  height: 42px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  scrollbar-width: none;
+}
+
+.tagsInputWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.tagsInputWrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  background-color: var(--color-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tag button {
+  background: transparent;
+  border: none;
+  color: var(--color-subtext);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color var(--transition);
+}
+
+.tag button i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  transform: translateY(0.5px);
+}
+
+.tag button:hover {
+  color: var(--color-danger);
+}
+
+.tagInput {
+  flex: 1;
+  min-width: 150px;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: var(--font-base);
+  color: var(--color-text);
+  background: transparent;
+}
+
+.variantsCardBody {
+  padding: 0;
+}
+
+.colStt {
+  width: 48px;
+  text-align: center;
+}
+
+.colPrice {
+  width: 160px;
+  text-align: right;
+  color: var(--color-subtext);
+  white-space: nowrap;
+}
+
+.variantTag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-info-light);
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.colActions {
+  width: 72px;
+  text-align: center;
+}
+
+.actionBtns {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-subtext);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.actionBtn i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.actionBtn:hover {
+  background: var(--color-hover);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.actionBtnDanger:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.variantRowEditing {
+  background-color: rgba(37, 99, 235, 0.04);
+}
+
+.variantRowEditing td {
+  border-bottom-color: rgba(37, 99, 235, 0.12);
+}
+
+.priceInput {
+  width: 100%;
+  max-width: 130px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  background: var(--color-white);
+  outline: none;
+  text-align: right;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.priceOverride {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.statusActive {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.statusInactive {
+  background-color: var(--color-hover);
+  color: var(--color-subtext);
+}
+

@@ -45,7 +45,9 @@ export function DashboardLayout() {
         <Sidebar collapsed={sidebarCollapsed} user={user} />
       </div>
 
-      {/* Drawer dành cho mobile */}
+      {
+        // Drawer cho mobile
+      }
       <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Sidebar user={user} />
       </Drawer>

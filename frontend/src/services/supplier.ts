@@ -89,6 +89,7 @@ export async function createSupplier(
     address: form.address,
     taxCode: form.taxCode,
     note: form.note,
+    status: form.status?.toUpperCase() || "ACTIVE",
   };
 
   const response = await apiFetch<ApiResponse<BackendSupplierResponse>>(
@@ -121,6 +122,7 @@ export async function updateSupplier(
     address: form.address,
     taxCode: form.taxCode,
     note: form.note,
+    status: form.status?.toUpperCase() || "ACTIVE",
   };
 
   const response = await apiFetch<ApiResponse<BackendSupplierResponse>>(
@@ -148,6 +150,7 @@ export async function patchSupplier(
   if (partialFields.address !== undefined) body.address = partialFields.address;
   if (partialFields.taxCode !== undefined) body.taxCode = partialFields.taxCode;
   if (partialFields.note !== undefined) body.note = partialFields.note;
+  if (partialFields.status !== undefined) body.status = partialFields.status.toUpperCase();
 
   const response = await apiFetch<ApiResponse<BackendSupplierResponse>>(
     `/suppliers/${code}`,

@@ -15,6 +15,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     Optional<PurchaseOrder> findByCode(String code);
     boolean existsByCode(String code);
 
+    boolean existsBySupplierId(Long supplierId);
+
     @Query("SELECT po FROM PurchaseOrder po JOIN po.supplier s WHERE " +
             "LOWER(po.code) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")

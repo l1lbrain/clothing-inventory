@@ -19,14 +19,14 @@ export const NAV_GROUPS: NavGroup[] = [
     roles: ["coordinator"],
     items: [
       {
+        label: "Đơn đặt hàng",
+        path: ROUTES.COORDINATOR_ORDER,
+        icon: "fi fi-rr-shopping-cart",
+      },
+      {
         label: "Phiếu nhập kho",
         path: ROUTES.COORDINATOR_RECEIPT,
         icon: "fi fi-rr-file-invoice",
-      },
-      {
-        label: "Thanh toán nhà cung cấp",
-        path: ROUTES.COORDINATOR_PAYMENT,
-        icon: "fi fi-rr-credit-card",
       },
     ],
   },

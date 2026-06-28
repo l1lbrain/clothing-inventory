@@ -1,8 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { DashboardLayout } from "./layouts/DashboardLayout/DashboardLayout";
 import { Dashboard } from "./pages/Dashboard/Dashboard";
 import { WarehouseReceiptPage } from "./pages/Coordinator/WarehouseReceipt/WarehouseReceipt";
-import { Payment } from "./pages/Coordinator/Payment/Payment";
+import { PurchaseOrderPage } from "./pages/Coordinator/PurchaseOrder/PurchaseOrder";
 import { ProductList } from "./pages/WarehouseStaff/ProductList/ProductList";
 import { CreateProduct } from "./pages/WarehouseStaff/CreateProduct/CreateProduct";
 import { SupplierManagement } from "./pages/StoreKeeper/SupplierManagement/SupplierManagement";
@@ -11,50 +11,63 @@ import { Login } from "./pages/Login/Login";
 import { Profile } from "./pages/Profile/Profile";
 import { ROUTES } from "./constants/routes";
 import { ToastProvider } from "./components/Toast/ToastProvider";
+import { WarehouseContextProvider } from "./context/WarehouseContext";
+
+const router = createBrowserRouter([
+  {
+    path: ROUTES.LOGIN,
+    element: <Login />,
+  },
+  {
+    path: "/",
+    element: <DashboardLayout />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: ROUTES.COORDINATOR_ORDER,
+        element: <PurchaseOrderPage />,
+      },
+      {
+        path: ROUTES.COORDINATOR_RECEIPT,
+        element: <WarehouseReceiptPage />,
+      },
+      {
+        path: ROUTES.WAREHOUSE_PRODUCTS,
+        element: <ProductList />,
+      },
+      {
+        path: ROUTES.WAREHOUSE_CREATE_PRODUCT,
+        element: <CreateProduct />,
+      },
+      {
+        path: ROUTES.STOREKEEPER_SUPPLIERS,
+        element: <SupplierManagement />,
+      },
+      {
+        path: ROUTES.STOREKEEPER_CONTACT,
+        element: <SupplierContact />,
+      },
+      {
+        path: ROUTES.PROFILE,
+        element: <Profile />,
+      },
+      {
+        path: "*",
+        element: <Navigate to={ROUTES.LOGIN} replace />,
+      },
+    ],
+  },
+]);
 
 export default function App() {
   return (
-    <ToastProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public */}
-          <Route path={ROUTES.LOGIN} element={<Login />} />
-
-          {/* Protected – có sidebar & header */}
-          <Route element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-
-            {/* Điều phối viên */}
-            <Route
-              path={ROUTES.COORDINATOR_RECEIPT}
-              element={<WarehouseReceiptPage />}
-            />
-            <Route path={ROUTES.COORDINATOR_PAYMENT} element={<Payment />} />
-
-            {/* Nhân viên kho */}
-            <Route path={ROUTES.WAREHOUSE_PRODUCTS} element={<ProductList />} />
-            <Route
-              path={ROUTES.WAREHOUSE_CREATE_PRODUCT}
-              element={<CreateProduct />}
-            />
-
-            {/* Thủ kho */}
-            <Route
-              path={ROUTES.STOREKEEPER_SUPPLIERS}
-              element={<SupplierManagement />}
-            />
-            <Route
-              path={ROUTES.STOREKEEPER_CONTACT}
-              element={<SupplierContact />}
-            />
-
-            {/* Thông tin cá nhân */}
-            <Route path={ROUTES.PROFILE} element={<Profile />} />
-
-            <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </ToastProvider>
+    <WarehouseContextProvider>
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
+    </WarehouseContextProvider>
   );
 }
