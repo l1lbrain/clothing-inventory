@@ -15,6 +15,7 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(404, "Product not found"),
     VARIANT_NOT_FOUND(404, "Product variant not found"),
     PURCHASE_ORDER_NOT_FOUND(404, "Purchase order not found"),
+    PAYMENT_METHOD_NOT_FOUND(404, "Payment method not found"),
 
     CONFLICT_ACCOUNT(409, "Account already exists"),
     CONFLICT_SUPPLIER_CODE(409, "Supplier code already exists"),
@@ -24,12 +25,14 @@ public enum ErrorCode {
     CONFLICT_CATEGORY_CODE(409, "Category code already exists"),
     CONFLICT_PRODUCT_CODE(409, "Product code already exists"),
     CONFLICT_PURCHASE_ORDER_CODE(409, "Purchase order code already exists"),
+    CONFLICT_PAYMENT_METHOD_CODE(409, "Payment method code already exists"),
     SKU_ALREADY_EXISTS(400, "SKU already exists in the system"),
 
     UNAUTHORIZED_REFRESH_TOKEN(401, "Invalid refresh token"),
     INTERNAL_SERVER_ERROR(500, "Internal server error"),
     INSUFFICIENT_STOCK(400, "Insufficient stock to perform this operation"),
     INVALID_PURCHASE_ORDER_STATUS_TRANSITION(400, "Invalid purchase order status transition"),
+    PAYMENT_AMOUNT_EXCEEDS_REMAINING(400, "Payment amount exceeds remaining amount"),
 
     // Deletion & Update Errors
     CANNOT_DELETE_SUPPLIER_HAS_PURCHASE_ORDER(409, "Cannot delete supplier with existing purchase orders"),

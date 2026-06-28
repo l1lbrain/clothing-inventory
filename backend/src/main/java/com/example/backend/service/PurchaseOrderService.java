@@ -10,6 +10,7 @@ import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.PurchaseOrderDetailMapper;
 import com.example.backend.mapper.PurchaseOrderMapper;
 import com.example.backend.model.*;
+import com.example.backend.model.enums.PurchaseOrderPaymentStatus;
 import com.example.backend.model.enums.PurchaseOrderStatus;
 import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +31,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PurchaseOrderService {
 
+    private static final String TRANSACTION_TYPE_IN = "IN";
+
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderDetailRepository purchaseOrderDetailRepository;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
     private final SupplierRepository supplierRepository;
     private final ProductVariantRepository productVariantRepository;
     private final UserRepository userRepository;
@@ -73,6 +77,7 @@ public class PurchaseOrderService {
                 .orderDate(request.getOrderDate())
                 .note(request.getNote())
                 .status(PurchaseOrderStatus.DRAFT)
+                .paymentStatus(PurchaseOrderPaymentStatus.UNPAID)
                 .totalAmount(BigDecimal.ZERO)
                 .build();
 
@@ -105,10 +110,41 @@ public class PurchaseOrderService {
 
         if (newStatus == PurchaseOrderStatus.RECEIVED) {
             order.setReceivedDate(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
+            receivePurchaseOrder(order);
         }
 
         PurchaseOrder updatedOrder = purchaseOrderRepository.save(order);
         return buildResponseWithDetails(updatedOrder);
+    }
+
+    private void receivePurchaseOrder(PurchaseOrder order) {
+        User currentUser = getCurrentUser();
+        List<PurchaseOrderDetail> details = purchaseOrderDetailRepository.findByPurchaseOrderId(order.getId());
+        List<InventoryTransaction> transactions = new ArrayList<>();
+
+        for (PurchaseOrderDetail detail : details) {
+            ProductVariant variant = productVariantRepository.findByIdForUpdate(detail.getVariant().getId())
+                    .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
+
+            Integer quantityBefore = variant.getQuantityOnHand();
+            Integer quantityAfter = quantityBefore + detail.getQuantity();
+
+            variant.setQuantityOnHand(quantityAfter);
+
+            InventoryTransaction transaction = InventoryTransaction.builder()
+                    .variant(variant)
+                    .purchaseOrderDetail(detail)
+                    .transactionType(TRANSACTION_TYPE_IN)
+                    .quantity(detail.getQuantity())
+                    .quantityBefore(quantityBefore)
+                    .quantityAfter(quantityAfter)
+                    .note("Receive purchase order " + order.getCode())
+                    .createdBy(currentUser)
+                    .build();
+            transactions.add(transaction);
+        }
+
+        inventoryTransactionRepository.saveAll(transactions);
     }
 
     private void validateStatusTransition(PurchaseOrderStatus current, PurchaseOrderStatus next) {
@@ -148,8 +184,8 @@ public class PurchaseOrderService {
     }
 
     private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByUsername(username)
+        String uuid = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUuid(uuid)
                 .orElseThrow(() -> new InvalidException(ErrorCode.ACCOUNT_NOT_FOUND));
     }
 }

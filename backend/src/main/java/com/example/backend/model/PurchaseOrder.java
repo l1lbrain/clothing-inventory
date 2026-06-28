@@ -1,6 +1,7 @@
 package com.example.backend.model;
 
 import com.example.backend.model.enums.PurchaseOrderStatus;
+import com.example.backend.model.enums.PurchaseOrderPaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -41,6 +42,10 @@ public class PurchaseOrder {
 
     @Column(name = "total_amount", precision = 15, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 20)
+    private PurchaseOrderPaymentStatus paymentStatus = PurchaseOrderPaymentStatus.UNPAID;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)

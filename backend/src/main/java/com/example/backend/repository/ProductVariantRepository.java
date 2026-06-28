@@ -1,9 +1,11 @@
 package com.example.backend.repository;
 
 import com.example.backend.model.ProductVariant;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,6 +17,11 @@ import java.util.Optional;
 public interface ProductVariantRepository extends JpaRepository<ProductVariant, Long> {
 
     Optional<ProductVariant> findBySku(String sku);
+
+    //Xử lý trường hợp 2 người nhập hàng cùng lúc dẫn đến số lượng tồn kho bị sai
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT pv FROM ProductVariant pv WHERE pv.id = :id")
+    Optional<ProductVariant> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsBySku(String sku);
 

@@ -17,6 +17,7 @@ public class PurchaseOrderResponseDto {
     private LocalDateTime orderDate;
     private LocalDateTime receivedDate;
     private BigDecimal totalAmount;
+    private String paymentStatus;
     private String status;
     private String note;
     private LocalDateTime createdAt;

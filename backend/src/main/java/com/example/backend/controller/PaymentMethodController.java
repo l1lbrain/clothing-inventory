@@ -22,6 +22,11 @@ public class PaymentMethodController {
         return ResponseEntity.ok(paymentMethodService.getAllPaymentMethods());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<PaymentMethodResponseDto> getPaymentMethodById(@PathVariable Long id) {
+        return ResponseEntity.ok(paymentMethodService.getPaymentMethodById(id));
+    }
+
     @PostMapping
     public ResponseEntity<PaymentMethodResponseDto> createPaymentMethod(@Valid @RequestBody PaymentMethodRequestDto request) {
         return ResponseEntity.ok(paymentMethodService.createPaymentMethod(request));
