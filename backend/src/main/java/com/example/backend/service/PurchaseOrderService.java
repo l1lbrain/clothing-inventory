@@ -52,8 +52,7 @@ public class PurchaseOrderService {
         Page<PurchaseOrderResponseDto> dtoPage = purchaseOrderPage.map(this::buildResponseWithDetails);
         return PageResponseDto.from(dtoPage);
     }
-
-    /** Lấy danh sách phiếu nhập kho — chỉ các đơn có status = RECEIVED */
+    
     public PageResponseDto<PurchaseOrderResponseDto> getReceivedPurchaseOrders(String keyword, Pageable pageable) {
         Page<PurchaseOrder> purchaseOrderPage;
         if (StringUtils.hasText(keyword)) {
@@ -189,7 +188,6 @@ public class PurchaseOrderService {
         return details;
     }
 
-    /** Sửa đơn đặt hàng — chỉ cho phép khi đơn ở trạng thái DRAFT */
     @Transactional
     public PurchaseOrderResponseDto updatePurchaseOrder(Long id, PurchaseOrderRequestDto request) {
         PurchaseOrder order = purchaseOrderRepository.findById(id)

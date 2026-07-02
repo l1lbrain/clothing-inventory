@@ -27,7 +27,6 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(keyword, pageable));
     }
 
-    /** Lấy danh sách phiếu nhập kho — chỉ các đơn có status = RECEIVED */
     @GetMapping("/received")
     public ResponseEntity<PageResponseDto<PurchaseOrderResponseDto>> getReceivedPurchaseOrders(
             @RequestParam(name = "page", defaultValue = "1") int pageNumber,
@@ -47,7 +46,6 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.createPurchaseOrder(request));
     }
 
-    /** Sửa đơn đặt hàng — chỉ cho phép khi đơn ở trạng thái DRAFT */
     @PutMapping("/{id}")
     public ResponseEntity<PurchaseOrderResponseDto> updatePurchaseOrder(
             @PathVariable Long id,

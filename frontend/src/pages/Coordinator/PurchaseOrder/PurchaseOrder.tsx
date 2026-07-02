@@ -24,7 +24,7 @@ import type { Supplier } from "../../../types/supplier.types";
 import type { Product } from "../../../types/product.types";
 import styles from "./PurchaseOrder.module.css";
 
-// ─── Hằng số ──────────────────────────────────────────────────────────────────
+
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT: "Nháp",
@@ -33,12 +33,6 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Đã huỷ",
 };
 
-/**
- * Format tên hiển thị của variant theo cấu trúc:
- * "[Tên SP] [option1] / [option2] / [option3]"
- * Các option null/rỗng được bỏ qua — không để lỗi hiển thị.
- * Ví dụ: "Ao Polo S / Đỏ", "Áo Hoodie", "Áo L".
- */
 function formatVariantName(
   productName: string,
   option1: string | null,
@@ -51,7 +45,7 @@ function formatVariantName(
   return opts ? `${productName} ${opts}` : productName;
 }
 
-// ─── Searchable Product Dropdown ──────────────────────────────────────────────
+
 
 interface SearchableProductDropdownProps {
   value: string;
@@ -102,7 +96,7 @@ function SearchableProductDropdown({
         <span>
           {selectedProduct
             ? `${selectedProduct.sku} - ${selectedProduct.name}`
-            : "-- Chọn sản phẩm (variant) --"}
+            : "-- Chọn sản phẩm --"}
         </span>
         <i className={`fi fi-rr-angle-small-${isOpen ? "up" : "down"}`} />
       </div>
@@ -165,7 +159,7 @@ function SearchableProductDropdown({
   );
 }
 
-// ─── Line Item Type ───────────────────────────────────────────────────────────
+
 
 interface LineItem {
   _key: string; // key nội bộ để render danh sách
@@ -187,16 +181,16 @@ const EMPTY_LINE: LineItem = {
   lineTotal: 0,
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+
 
 export function PurchaseOrderPage() {
   const { showToast } = useToast();
 
-  // ── Dữ liệu master ────────────────────────────────────────────────────────
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
-  // ── Dữ liệu đơn hàng + phân trang ────────────────────────────────────────
+
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -204,11 +198,11 @@ export function PurchaseOrderPage() {
   const [pageSize, setPageSize] = useState(10);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // ── Tìm kiếm ──────────────────────────────────────────────────────────────
+
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  // ── Modal / Dialog states ─────────────────────────────────────────────────
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailOrder, setDetailOrder] = useState<PurchaseOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
@@ -216,7 +210,7 @@ export function PurchaseOrderPage() {
   const [confirmPending, setConfirmPending] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
-  // ── Form state ─────────────────────────────────────────────────────────────
+
   const [formSupplierId, setFormSupplierId] = useState("");
   const [formNote, setFormNote] = useState("");
   const [formLines, setFormLines] = useState<LineItem[]>([
@@ -224,7 +218,7 @@ export function PurchaseOrderPage() {
   ]);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
-  // ── Load dữ liệu master (suppliers + products) ────────────────────────────
+
   useEffect(() => {
     getSuppliersPage(1)
       .then(async (first) => {
@@ -276,18 +270,17 @@ export function PurchaseOrderPage() {
       .catch(console.error);
   }, []);
 
-  // ── Debounce tìm kiếm ─────────────────────────────────────────────────────
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Reset về trang 1 khi query thay đổi
-  useEffect(() => {
+  const [prevQuery, setPrevQuery] = useState(debouncedQuery);
+  if (debouncedQuery !== prevQuery) {
+    setPrevQuery(debouncedQuery);
     setCurrentPage(1);
-  }, [debouncedQuery]);
+  }
 
-  // ── Fetch danh sách đơn đặt hàng ─────────────────────────────────────────
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -313,7 +306,7 @@ export function PurchaseOrderPage() {
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
 
-  // ── Helpers cho supplier dropdown ─────────────────────────────────────────
+
   // Luôn dùng s.id (đã là chuỗi số nguyên hợp lệ sau khi mapper chạy String(s.id))
   const supplierOptions = useMemo(
     () =>
@@ -324,7 +317,7 @@ export function PurchaseOrderPage() {
     [suppliers],
   );
 
-  // ── Helpers cho line items ────────────────────────────────────────────────
+
   const updateLine = (
     idx: number,
     field: keyof LineItem,
@@ -413,7 +406,7 @@ export function PurchaseOrderPage() {
     setDetailOrder(null);
   };
 
-  // ── Tạo đơn đặt hàng ─────────────────────────────────────────────────────
+
   const handleCreate = async () => {
     if (!formSupplierId) {
       showToast("Vui lòng chọn nhà cung cấp", "warning");
@@ -464,7 +457,7 @@ export function PurchaseOrderPage() {
     }
   };
 
-  // ── Lưu chỉnh sửa đơn đặt hàng (chỉ DRAFT mới cho phép) ─────────────────
+
   const handleSaveEdit = async () => {
     if (!editingOrder) return;
     if (!formSupplierId) {
@@ -532,7 +525,7 @@ export function PurchaseOrderPage() {
     }
   };
 
-  // ─── Render form tạo đơn ──────────────────────────────────────────────────
+
   const renderForm = () => (
     <div className={styles.form}>
       <div className={styles.formRow}>
@@ -564,7 +557,7 @@ export function PurchaseOrderPage() {
         <table className={styles.itemsTable}>
           <thead>
             <tr>
-              <th>Sản phẩm (Variant)</th>
+              <th>Sản phẩm</th>
               <th style={{ width: 80 }}>SL</th>
               <th style={{ width: 140 }}>Đơn giá nhập</th>
               <th style={{ width: 130 }}>Thành tiền</th>
@@ -634,7 +627,7 @@ export function PurchaseOrderPage() {
     </div>
   );
 
-  // ─── Render detail modal ───────────────────────────────────────────────────
+
   const renderDetail = (order: PurchaseOrder) => (
     <div className={styles.detailSection}>
       <div className={styles.detailHeader}>
@@ -714,14 +707,14 @@ export function PurchaseOrderPage() {
         </span>
       </div>
 
-      {/* Footer: ẩn hết nút hành động khi đơn đã RECEIVED */}
+
       <div className={styles.modalFooter}>
         <Button variant="secondary" onClick={() => setDetailOrder(null)}>
           Đóng
         </Button>
         {order.status !== "RECEIVED" && (
           <>
-            {/* Nút Sửa — chỉ hiển thị khi đơn ở trạng thái DRAFT */}
+
             {order.status === "DRAFT" && (
               <Button
                 variant="secondary"
@@ -732,7 +725,7 @@ export function PurchaseOrderPage() {
               </Button>
             )}
 
-            {/* Nút Duyệt (DRAFT) hoặc Nhập hàng (PENDING) */}
+
             {order.status === "DRAFT" && (
               <Button
                 icon="fi fi-rr-check"
@@ -756,7 +749,7 @@ export function PurchaseOrderPage() {
               </Button>
             )}
 
-            {/* Nút Huỷ đơn */}
+
             {order.status !== "CANCELLED" && (
               <Button
                 variant="danger"
@@ -775,7 +768,7 @@ export function PurchaseOrderPage() {
     </div>
   );
 
-  // ─── Table columns ─────────────────────────────────────────────────────────
+
   const columns: TableColumn<PurchaseOrder>[] = [
     { key: "code", label: "Mã đơn", width: "140px" },
     { key: "supplierName", label: "Nhà cung cấp" },
@@ -838,7 +831,7 @@ export function PurchaseOrderPage() {
     },
   ];
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
     <section>
       <div className={styles.container}>
@@ -852,7 +845,7 @@ export function PurchaseOrderPage() {
           </Button>
         </div>
 
-        {/* Search */}
+
         <div style={{ maxWidth: 340 }}>
           <Input
             id="po-search"
@@ -883,7 +876,7 @@ export function PurchaseOrderPage() {
         )}
       </div>
 
-      {/* Create modal */}
+
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
@@ -920,7 +913,7 @@ export function PurchaseOrderPage() {
         </div>
       </Modal>
 
-      {/* Detail modal */}
+
       <Modal
         isOpen={!!detailOrder}
         onClose={() => setDetailOrder(null)}
@@ -930,7 +923,7 @@ export function PurchaseOrderPage() {
         {detailOrder && renderDetail(detailOrder)}
       </Modal>
 
-      {/* Edit modal */}
+
       <Modal
         isOpen={!!editingOrder}
         onClose={() => { setEditingOrder(null); resetForm(); }}
@@ -965,7 +958,7 @@ export function PurchaseOrderPage() {
         </div>
       </Modal>
 
-      {/* Confirm duyệt đơn (DRAFT → PENDING) */}
+
       <ConfirmDialog
         isOpen={!!confirmPending}
         title="Duyệt đơn đặt hàng?"
@@ -978,7 +971,7 @@ export function PurchaseOrderPage() {
         onCancel={() => setConfirmPending(null)}
       />
 
-      {/* Confirm nhập hàng (PENDING → RECEIVED) */}
+
       <ConfirmDialog
         isOpen={!!confirmReceive}
         title="Xác nhận nhập hàng?"
@@ -991,7 +984,7 @@ export function PurchaseOrderPage() {
         onCancel={() => setConfirmReceive(null)}
       />
 
-      {/* Confirm huỷ đơn */}
+
       <ConfirmDialog
         isOpen={!!confirmCancel}
         title="Huỷ đơn đặt hàng?"
