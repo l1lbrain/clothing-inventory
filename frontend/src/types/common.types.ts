@@ -29,8 +29,9 @@ export interface SelectOption {
 
 export interface TableColumn<T> {
   key: keyof T | string;
-  label: string;
+  label: React.ReactNode;
   width?: string;
   align?: "left" | "center" | "right";
   render?: (value: unknown, row: T) => React.ReactNode;
 }
+

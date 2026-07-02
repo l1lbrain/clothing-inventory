@@ -32,7 +32,9 @@ export interface BackendPurchaseOrderResponse {
   orderDate: string;
   receivedDate: string | null;
   totalAmount: number;
+  totalQuantity: number;
   paymentStatus: string;
+
   status: string;
   note: string;
   createdAt: string;
@@ -94,6 +96,8 @@ export function mapBackendOrderToFrontend(
     orderDate: o.orderDate || "",
     receivedDate: o.receivedDate ?? null,
     totalAmount: Number(o.totalAmount) || 0,
+    totalQuantity: o.totalQuantity ?? 0,
+
     paymentStatus: (o.paymentStatus as PurchaseOrder["paymentStatus"]) ?? "UNPAID",
     status: (o.status as PurchaseOrder["status"]) ?? "DRAFT",
     note: o.note || "",
@@ -124,10 +128,14 @@ export function mapBackendOrderToFrontend(
 export async function getPurchaseOrdersPage(
   page: number,
   keyword?: string,
+  sortBy?: string,
+  sortDir?: "asc" | "desc",
 ): Promise<PaginatedPurchaseOrders> {
-  const url = keyword
-    ? `/purchase-orders?page=${page}&keyword=${encodeURIComponent(keyword)}`
-    : `/purchase-orders?page=${page}`;
+  const params = new URLSearchParams({ page: String(page) });
+  if (keyword) params.set("keyword", keyword);
+  if (sortBy) params.set("sortBy", sortBy);
+  if (sortDir) params.set("sortDir", sortDir);
+  const url = `/purchase-orders?${params.toString()}`;
 
   const response = await apiFetch<ApiResponse<PaginatedPurchaseOrdersResponse>>(url);
   const data = response.data;
@@ -143,16 +151,20 @@ export async function getPurchaseOrdersPage(
 
 /**
  * Lấy danh sách phiếu nhập kho (đơn có status = RECEIVED) theo trang.
- * Backend: GET /purchase-orders/received?page=&keyword=
+ * Backend: GET /purchase-orders/received?page=&keyword=&sortBy=&sortDir=
  * Response: ApiResponse<PageResponseDto<PurchaseOrderResponseDto>>
  */
 export async function getReceivedPurchaseOrdersPage(
   page: number,
   keyword?: string,
+  sortBy?: string,
+  sortDir?: "asc" | "desc",
 ): Promise<PaginatedPurchaseOrders> {
-  const url = keyword
-    ? `/purchase-orders/received?page=${page}&keyword=${encodeURIComponent(keyword)}`
-    : `/purchase-orders/received?page=${page}`;
+  const params = new URLSearchParams({ page: String(page) });
+  if (keyword) params.set("keyword", keyword);
+  if (sortBy)  params.set("sortBy", sortBy);
+  if (sortDir) params.set("sortDir", sortDir);
+  const url = `/purchase-orders/received?${params.toString()}`;
 
   const response = await apiFetch<ApiResponse<PaginatedPurchaseOrdersResponse>>(url);
   const data = response.data;
@@ -165,6 +177,7 @@ export async function getReceivedPurchaseOrdersPage(
     totalPages: data.totalPages,
   };
 }
+
 
 /**
  * Lấy chi tiết một đơn đặt hàng theo id.

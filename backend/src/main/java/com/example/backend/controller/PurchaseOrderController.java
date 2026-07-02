@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,7 +19,6 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
 
-    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping
     public ResponseEntity<PageResponseDto<PurchaseOrderResponseDto>> getAllPurchaseOrders(
             @RequestParam(name = "page", defaultValue = "1") int pageNumber,
@@ -29,7 +27,7 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(keyword, pageable));
     }
 
-    @PreAuthorize("hasAuthority('coordinator')")
+    /** Lấy danh sách phiếu nhập kho — chỉ các đơn có status = RECEIVED */
     @GetMapping("/received")
     public ResponseEntity<PageResponseDto<PurchaseOrderResponseDto>> getReceivedPurchaseOrders(
             @RequestParam(name = "page", defaultValue = "1") int pageNumber,
@@ -38,20 +36,18 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getReceivedPurchaseOrders(keyword, pageable));
     }
 
-    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseOrderResponseDto> getPurchaseOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(purchaseOrderService.getPurchaseOrderById(id));
     }
 
-    @PreAuthorize("hasAuthority('coordinator')")
     @PostMapping
     public ResponseEntity<PurchaseOrderResponseDto> createPurchaseOrder(
             @Valid @RequestBody PurchaseOrderRequestDto request) {
         return ResponseEntity.ok(purchaseOrderService.createPurchaseOrder(request));
     }
 
-    @PreAuthorize("hasAuthority('coordinator')")
+    /** Sửa đơn đặt hàng — chỉ cho phép khi đơn ở trạng thái DRAFT */
     @PutMapping("/{id}")
     public ResponseEntity<PurchaseOrderResponseDto> updatePurchaseOrder(
             @PathVariable Long id,
@@ -59,7 +55,6 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.updatePurchaseOrder(id, request));
     }
 
-    @PreAuthorize("hasAuthority('coordinator')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<PurchaseOrderResponseDto> updateStatus(
             @PathVariable Long id,

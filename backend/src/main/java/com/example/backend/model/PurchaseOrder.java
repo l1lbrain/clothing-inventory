@@ -5,6 +5,7 @@ import com.example.backend.model.enums.PurchaseOrderPaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
@@ -42,6 +43,10 @@ public class PurchaseOrder {
 
     @Column(name = "total_amount", precision = 15, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
+
+    /** Tổng số lượng sản phẩm đặt — tính từ subquery, read-only, dùng để sort. */
+    @Formula("(SELECT COALESCE(SUM(pod.quantity), 0) FROM purchase_order_details pod WHERE pod.purchase_order_id = id)")
+    private Integer totalQuantity;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", length = 20)

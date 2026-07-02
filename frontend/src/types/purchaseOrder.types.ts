@@ -30,6 +30,8 @@ export interface PurchaseOrder {
   orderDate: string;
   receivedDate: string | null;
   totalAmount: number;
+  totalQuantity: number;
+
   paymentStatus: PurchaseOrderPaymentStatus;
   status: PurchaseOrderStatus;
   note: string;
