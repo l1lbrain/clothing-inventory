@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,21 +27,25 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.getAllSuppliers(keyword, pageable));
     }
 
+    @PreAuthorize("hasAuthority('store-keeper')")
     @PostMapping
     public ResponseEntity<SupplierResponseDto> createSupplier(@Valid @RequestBody SupplierRequestDto request) {
         return ResponseEntity.ok(supplierService.createSupplier(request));
     }
 
+    @PreAuthorize("hasAuthority('store-keeper')")
     @PutMapping("/{code}")
     public ResponseEntity<SupplierResponseDto> updateSupplier(@PathVariable String code, @Valid @RequestBody SupplierRequestDto request) {
         return ResponseEntity.ok(supplierService.updateSupplier(code, request));
     }
 
+    @PreAuthorize("hasAuthority('store-keeper')")
     @PatchMapping("/{code}")
     public ResponseEntity<SupplierResponseDto> patchSupplier(@PathVariable String code, @RequestBody SupplierRequestDto request) {
         return ResponseEntity.ok(supplierService.updateSupplier(code, request));
     }
 
+    @PreAuthorize("hasAuthority('store-keeper')")
     @DeleteMapping("/{code}")
     public ResponseEntity<Void> deleteSupplier(@PathVariable String code) {
         supplierService.deleteSupplier(code);

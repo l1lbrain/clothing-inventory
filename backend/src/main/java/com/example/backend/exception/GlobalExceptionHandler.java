@@ -3,7 +3,6 @@ package com.example.backend.exception;
 import com.example.backend.dto.response.FormatMessageResponseDto;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.MethodParameter;
-import org.springframework.expression.AccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +11,7 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,7 +27,7 @@ import java.util.Objects;
 public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     @Override
     public boolean supports(@NonNull MethodParameter returnType, @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
-        return true; // true để wrap toàn bộ response
+        return true;
     }
 
     @Override
@@ -59,10 +59,10 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
         return formatException(status, e.getMessage());
     }
 
-    @ExceptionHandler(AccessException.class)
+    @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ResponseEntity<FormatMessageResponseDto<Void>> handleException403() {
-        return formatException(HttpStatus.FORBIDDEN, "Forbidden");
+    public ResponseEntity<FormatMessageResponseDto<Void>> handleAccessDeniedException() {
+        return formatException(HttpStatus.FORBIDDEN, "Access Denied");
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,6 +17,7 @@ public class InventoryTransactionController {
 
     private final InventoryTransactionService transactionService;
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping
     public ResponseEntity<PageResponseDto<TransactionResponseDto>> getAllTransactions(
             @RequestParam(name = "page", defaultValue = "1") int pageNumber,
@@ -25,6 +27,7 @@ public class InventoryTransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping("/variant/{variantId}")
     public ResponseEntity<PageResponseDto<TransactionResponseDto>> getHistoryByVariantId(
             @PathVariable Long variantId,

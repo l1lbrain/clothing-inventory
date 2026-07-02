@@ -6,6 +6,7 @@ import com.example.backend.service.PaymentMethodService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,14 +18,10 @@ public class PaymentMethodController {
 
     private final PaymentMethodService paymentMethodService;
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping
     public ResponseEntity<List<PaymentMethodResponseDto>> getAllPaymentMethods() {
         return ResponseEntity.ok(paymentMethodService.getAllPaymentMethods());
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<PaymentMethodResponseDto> getPaymentMethodById(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentMethodService.getPaymentMethodById(id));
     }
 
     @PostMapping

@@ -32,7 +32,7 @@ function decodeJwtPayload(token: string): DecodedToken | null {
 const ROLE_MAP: Record<string, { label: string; icon: string }> = {
   coordinator: { label: "Nhân viên điều phối", icon: "fi fi-rr-building" },
   "warehouse-staff": { label: "Nhân viên kho", icon: "fi fi-rr-box-alt" },
-  storekeeper: { label: "Thủ kho", icon: "fi fi-rr-users-alt" },
+  "store-keeper": { label: "Thủ kho", icon: "fi fi-rr-users-alt" },
 };
 
 export function Profile() {

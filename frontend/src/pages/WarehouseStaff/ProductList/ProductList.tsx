@@ -3,15 +3,14 @@ import type {
   Product,
   Variant,
 } from "../../../types/product.types";
-import { PRODUCT_CATEGORY_LABELS } from "../../../constants/product";
 import { Table } from "../../../components/Table/Table";
 import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import { Pagination } from "../../../components/Pagination/Pagination";
 import { Select } from "../../../components/Select/Select";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
-import type { TableColumn, SelectOption } from "../../../types/common.types";
+import type { TableColumn } from "../../../types/common.types";
 import { formatCurrency, formatDateTime } from "../../../utils/formatters";
-import { getProductsPage, deleteProduct, deleteVariant, deleteVariants, bulkUpdateVariantPrices, updateProduct, mapBackendProductToFrontend, type ProductUpdatePayload, updateVariant, type VariantUpdatePayload } from "../../../services/product";
+import { getProductsPage, deleteProduct, deleteVariant, deleteVariants, bulkUpdateVariantPrices, updateProduct, mapBackendProductToFrontend, type ProductUpdatePayload, updateVariant, type VariantUpdatePayload, getCategories, type CategoryResponseDto } from "../../../services/product";
 import { Modal } from "../../../components/Modal/Modal";
 import { Button } from "../../../components/Button/Button";
 import { useToast } from "../../../components/Toast/ToastContext";
@@ -24,29 +23,18 @@ import {
 import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import styles from "./ProductList.module.css";
 
-const CATEGORY_OPTIONS: SelectOption[] = [
-  { value: "", label: "Tất cả danh mục" },
-  ...Object.entries(PRODUCT_CATEGORY_LABELS).map(([v, l]) => ({
-    value: v,
-    label: l,
-  })),
-];
-
-const FORM_CATEGORY_OPTIONS = Object.entries(PRODUCT_CATEGORY_LABELS).map(
-  ([v, l]) => ({ value: v, label: l }),
-);
-
 export function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [categories, setCategories] = useState<CategoryResponseDto[]>([]);
   const [form, setForm] = useState({
     code: "",
     sku: "",
     name: "",
-    category: "ao",
+    category: "",
     unit: "Cái",
     importPrice: "",
     salePrice: "",
@@ -58,6 +46,29 @@ export function ProductList() {
     status: "ACTIVE",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch((err) => console.error("Failed to load categories:", err));
+  }, []);
+
+  const categoryOptions = useMemo(() => {
+    return [
+      { value: "", label: "Tất cả danh mục" },
+      ...categories.map((cat) => ({
+        value: cat.name,
+        label: cat.name,
+      })),
+    ];
+  }, [categories]);
+
+  const formCategoryOptions = useMemo(() => {
+    return categories.map((cat) => ({
+      value: String(cat.id),
+      label: cat.name,
+    }));
+  }, [categories]);
 
   // Trạng thái quản lý thuộc tính khi Chỉnh sửa sản phẩm
   interface ProductAttribute {
@@ -177,7 +188,9 @@ export function ProductList() {
   // Danh sách sản phẩm đã lọc
   const displayProducts = (() => {
     if (categoryFilter) {
-      return products.filter((p) => p.category === categoryFilter);
+      return products.filter(
+        (p) => p.categoryLabel.toLowerCase() === categoryFilter.toLowerCase()
+      );
     }
     return products;
   })();
@@ -188,11 +201,16 @@ export function ProductList() {
   };
 
   const handleEdit = (product: Product) => {
+    const matchedCategory = categories.find(
+      (cat) => cat.name.toLowerCase() === product.categoryLabel.toLowerCase()
+    );
+    const categoryVal = matchedCategory ? String(matchedCategory.id) : "";
+
     setForm({
       code: product.code,
       sku: product.sku,
       name: product.name,
-      category: product.category,
+      category: categoryVal,
       unit: product.unit || "Cái",
       importPrice: String(product.importPrice),
       salePrice: String(product.salePrice),
@@ -1067,7 +1085,7 @@ export function ProductList() {
           id="category"
           label="Danh mục"
           required
-          options={FORM_CATEGORY_OPTIONS}
+          options={formCategoryOptions}
           value={form.category}
           onChange={handleChange("category")}
           error={errors.category}
@@ -1563,7 +1581,7 @@ export function ProductList() {
               <div className={styles.filters}>
                 <Select
                   id="categoryFilter"
-                  options={CATEGORY_OPTIONS}
+                  options={categoryOptions}
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 />

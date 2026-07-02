@@ -87,21 +87,10 @@ function mapBackendCategoryToFrontend(categoryName: string): {
   category: ProductCategory;
   categoryLabel: string;
 } {
-  if (!categoryName) {
-    return { category: "ao", categoryLabel: "Áo" };
-  }
-  const name = categoryName.toLowerCase();
-  if (name.includes("áo") || name.includes("ao"))
-    return { category: "ao", categoryLabel: "Áo" };
-  if (name.includes("quần") || name.includes("quan"))
-    return { category: "quan", categoryLabel: "Quần" };
-  if (name.includes("đầm") || name.includes("dam"))
-    return { category: "dam", categoryLabel: "Đầm" };
-  if (name.includes("váy") || name.includes("vay"))
-    return { category: "vay", categoryLabel: "Váy" };
-  if (name.includes("giày") || name.includes("giay"))
-    return { category: "giay", categoryLabel: "Giày" };
-  return { category: "phu_kien", categoryLabel: categoryName };
+  return {
+    category: "phu_kien",
+    categoryLabel: categoryName || "—",
+  };
 }
 
 export function mapBackendVariantToFrontend(v: VariantResponseDto, p?: ProductResponseDto): Variant {
