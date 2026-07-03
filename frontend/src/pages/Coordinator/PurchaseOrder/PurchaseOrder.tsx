@@ -46,6 +46,17 @@ function formatVariantName(
   return opts ? `${productName} ${opts}` : productName;
 }
 
+// Định dạng thời gian hiện tại theo múi giờ trình duyệt (không có UTC offset)
+// để backend nhận LocalDateTime chính xác (giống Phiếu nhập kho)
+function nowLocalIsoString(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+    `T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  );
+}
+
 
 interface SearchableProductDropdownProps {
   value: string;
@@ -194,6 +205,9 @@ export function PurchaseOrderPage() {
   const [pageSize, setPageSize] = useState(10);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const [sortBy, setSortBy] = useState<"orderDate" | "totalAmount" | "totalQuantity">("orderDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -270,6 +284,44 @@ export function PurchaseOrderPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  /** Xử lý khi người dùng bấm vào header cột có thể sort */
+  const handleSort = (field: "orderDate" | "totalAmount" | "totalQuantity") => {
+    if (sortBy === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortDir("desc");
+    }
+    setCurrentPage(1);
+  };
+
+  /** Render label header có thể sort kèm icon chỉ hướng */
+  const buildSortHeader = (
+    label: string,
+    field: "orderDate" | "totalAmount" | "totalQuantity",
+  ) => {
+    const isActive = sortBy === field;
+    const iconClass = isActive
+      ? sortDir === "asc"
+        ? "fi fi-rr-caret-up"
+        : "fi fi-rr-caret-down"
+      : "fi fi-rr-caret-down";
+    return (
+      <span
+        className={styles.sortableHeader}
+        onClick={() => handleSort(field)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && handleSort(field)}
+      >
+        {label}
+        <i
+          className={`${iconClass} ${isActive ? styles.sortIconActive : styles.sortIcon}`}
+        />
+      </span>
+    );
+  };
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -277,6 +329,8 @@ export function PurchaseOrderPage() {
         const data = await getPurchaseOrdersPage(
           currentPage,
           debouncedQuery || undefined,
+          sortBy,
+          sortDir,
         );
         setOrders(data.items);
         setTotalElements(data.totalElements);
@@ -291,7 +345,7 @@ export function PurchaseOrderPage() {
       }
     };
     fetchOrders();
-  }, [currentPage, refreshTrigger, debouncedQuery, showToast]);
+  }, [currentPage, refreshTrigger, debouncedQuery, sortBy, sortDir, showToast]);
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
 
@@ -412,7 +466,7 @@ export function PurchaseOrderPage() {
       return;
     }
 
-    const now = new Date().toISOString();
+    const now = nowLocalIsoString();
     const autoCode = `PO-${Date.now()}`;
 
     const payload: PurchaseOrderCreateRequestDto = {
@@ -751,19 +805,17 @@ export function PurchaseOrderPage() {
     { key: "code", label: "Mã đơn", width: "140px" },
     { key: "supplierName", label: "Nhà cung cấp" },
     {
-      key: "details",
-      label: "SL Đặt",
+      key: "totalQuantity",
+      label: buildSortHeader("SL Đặt", "totalQuantity"),
       width: "90px",
       align: "center",
-      render: (val) => {
-        const details = val as PurchaseOrder["details"];
-        const total = details.reduce((s, d) => s + d.quantity, 0);
-        return <span style={{ fontWeight: 600 }}>{total}</span>;
-      },
+      render: (val) => (
+        <span style={{ fontWeight: 600 }}>{val as number}</span>
+      ),
     },
     {
       key: "totalAmount",
-      label: "Tổng tiền",
+      label: buildSortHeader("Tổng tiền", "totalAmount"),
       width: "140px",
       align: "right",
       render: (val) => (
@@ -785,8 +837,8 @@ export function PurchaseOrderPage() {
     },
     {
       key: "orderDate",
-      label: "Ngày đặt",
-      width: "110px",
+      label: buildSortHeader("Ngày đặt", "orderDate"),
+      width: "130px",
       render: (val) => formatDateTime(val as string),
     },
     {
