@@ -16,7 +16,7 @@ import {
   type PaymentMethod,
   type PaymentRecord,
 } from "../../../services/payment";
-import { formatCurrency, formatDateTime } from "../../../utils/formatters";
+import { formatCurrency, formatDateTime, formatNumber } from "../../../utils/formatters";
 import type { TableColumn } from "../../../types/common.types";
 import styles from "./WarehouseReceipt.module.css";
 
@@ -101,6 +101,8 @@ function PaymentModal({
     amount: "",
     note: "",
   });
+  // Chuỗi hiển thị đã được format theo định dạng tiền VN (1.000.000)
+  const [amountDisplay, setAmountDisplay] = useState("");
   const [errors, setErrors] = useState<PaymentFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -217,6 +219,7 @@ function PaymentModal({
         note: "",
         paymentDate: nowLocalIsoString(),
       }));
+      setAmountDisplay("");
       setErrors({});
 
       // Refresh lịch sử giao dịch về trang 1
@@ -400,15 +403,19 @@ function PaymentModal({
               <Input
                 id="pm-amount"
                 label="Số tiền thanh toán"
-                type="number"
-                step="any"
+                type="text"
+                inputMode="numeric"
                 placeholder={`Tối đa ${formatCurrency(effectiveRemaining)}`}
-                value={form.amount}
+                value={amountDisplay}
                 onChange={(e) => {
-                  setForm((prev) => ({ ...prev, amount: e.target.value }));
+                  // Loại bỏ tất cả ký tự không phải chữ số
+                  const raw = e.target.value.replace(/\D/g, "");
+                  // Cập nhật giá trị thuần (dùng để validate / submit)
+                  setForm((prev) => ({ ...prev, amount: raw }));
+                  // Cập nhật chuỗi hiển thị đã format (VD: 1.000.000, 500.000, ...)
+                  setAmountDisplay(raw ? formatNumber(Number(raw)) : "");
                   setErrors((prev) => ({ ...prev, amount: undefined }));
                 }}
-                onWheel={(e) => e.currentTarget.blur()}
                 error={errors.amount}
                 required
               />
@@ -659,6 +666,9 @@ export function WarehouseReceiptPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
+  const [sortBy, setSortBy] = useState<"receivedDate" | "totalAmount" | "totalQuantity">("receivedDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -673,12 +683,52 @@ export function WarehouseReceiptPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  /** Xử lý khi người dùng bấm vào header cột có thể sort */
+  const handleSort = (field: "receivedDate" | "totalAmount" | "totalQuantity") => {
+    if (sortBy === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortDir("desc");
+    }
+    setCurrentPage(1);
+  };
+
+  /** Render label header có thể sort kèm icon chỉ hướng */
+  const buildSortHeader = (
+    label: string,
+    field: "receivedDate" | "totalAmount" | "totalQuantity",
+  ) => {
+    const isActive = sortBy === field;
+    const iconClass = isActive
+      ? sortDir === "asc"
+        ? "fi fi-rr-caret-up"
+        : "fi fi-rr-caret-down"
+      : "fi fi-rr-caret-down";
+    return (
+      <span
+        className={styles.sortableHeader}
+        onClick={() => handleSort(field)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && handleSort(field)}
+      >
+        {label}
+        <i
+          className={`${iconClass} ${isActive ? styles.sortIconActive : styles.sortIcon}`}
+        />
+      </span>
+    );
+  };
+
   const fetchReceipts = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getReceivedPurchaseOrdersPage(
         currentPage,
         debouncedQuery || undefined,
+        sortBy,
+        sortDir,
       );
       setReceipts(data.items);
       setTotalElements(data.totalElements);
@@ -691,7 +741,7 @@ export function WarehouseReceiptPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedQuery, showToast]);
+  }, [currentPage, debouncedQuery, sortBy, sortDir, showToast]);
 
   useEffect(() => {
     let active = true;
@@ -731,19 +781,17 @@ export function WarehouseReceiptPage() {
     { key: "code", label: "Mã phiếu", width: "150px" },
     { key: "supplierName", label: "Nhà cung cấp" },
     {
-      key: "details",
-      label: "SL Nhập",
+      key: "totalQuantity",
+      label: buildSortHeader("SL Nhập", "totalQuantity"),
       width: "90px",
       align: "center",
-      render: (val) => {
-        const details = val as PurchaseOrder["details"];
-        const total = details.reduce((s, d) => s + d.quantity, 0);
-        return <span style={{ fontWeight: 600 }}>{total}</span>;
-      },
+      render: (val) => (
+        <span style={{ fontWeight: 600 }}>{val as number}</span>
+      ),
     },
     {
       key: "totalAmount",
-      label: "Tổng tiền",
+      label: buildSortHeader("Tổng tiền", "totalAmount"),
       width: "140px",
       align: "right",
       render: (val) => (
@@ -778,7 +826,7 @@ export function WarehouseReceiptPage() {
     },
     {
       key: "receivedDate",
-      label: "Ngày nhập",
+      label: buildSortHeader("Ngày nhập", "receivedDate"),
       width: "130px",
       render: (val) => (val ? formatDateTime(val as string) : "—"),
     },
