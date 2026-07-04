@@ -34,10 +34,13 @@ export function Login() {
     } catch (err: unknown) {
       let errorMessage = "Đăng nhập thất bại. Vui lòng thử lại!";
       if (err instanceof ApiError) {
-        errorMessage =
-          err.status === 401
-            ? "Sai tài khoản hoặc mật khẩu"
-            : "Máy chủ gặp lỗi";
+        if (err.message === "Account is inactive") {
+          errorMessage = "Tài khoản chưa được mở khóa";
+        } else if (err.status === 401) {
+          errorMessage = "Sai tài khoản hoặc mật khẩu";
+        } else {
+          errorMessage = "Máy chủ gặp lỗi";
+        }
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }

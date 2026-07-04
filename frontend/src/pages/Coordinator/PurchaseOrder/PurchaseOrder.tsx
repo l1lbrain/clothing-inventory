@@ -266,9 +266,12 @@ export function PurchaseOrderPage() {
                 image: p.image,
                 createdAt: p.createdAt,
                 updatedAt: p.updatedAt,
-                size: v.size,
-                color: v.color,
-                material: v.material,
+                option1Name: p.option1Name,
+                option2Name: p.option2Name,
+                option3Name: p.option3Name,
+                option1Value: v.option1Value,
+                option2Value: v.option2Value,
+                option3Value: v.option3Value,
                 variants: [],
               })),
           );
@@ -285,7 +288,7 @@ export function PurchaseOrderPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  /** Xử lý khi người dùng bấm vào header cột có thể sort */
+  // Xử lý khi người dùng bấm vào header cột có thể sort
   const handleSort = (field: "orderDate" | "totalAmount" | "totalQuantity") => {
     console.log("[PurchaseOrder Sort] Clicked:", field, "Current state:", { sortBy, sortDir });
     if (sortBy === field) {
@@ -297,7 +300,7 @@ export function PurchaseOrderPage() {
     setCurrentPage(1);
   };
 
-  /** Render label header có thể sort kèm icon chỉ hướng */
+  // Render label header có thể sort kèm icon chỉ hướng
   const buildSortHeader = (
     label: string,
     field: "orderDate" | "totalAmount" | "totalQuantity",

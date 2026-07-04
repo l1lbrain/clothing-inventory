@@ -6,6 +6,7 @@ import com.example.backend.dto.request.VariantBulkPriceUpdateRequestDto;
 import com.example.backend.dto.request.VariantDeleteRequestDto;
 import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.ProductResponseDto;
+import com.example.backend.dto.response.ProductVariantDetailResponseDto;
 import com.example.backend.model.enums.Status;
 import com.example.backend.service.ProductService;
 import jakarta.validation.Valid;
@@ -29,7 +30,7 @@ import java.util.Set;
 @Validated
 public class ProductController {
 
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("name", "brand", "createdAt", "updatedAt", "status");
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("name", "brand", "createdAt", "updatedAt", "status", "sku", "quantityOnHand");
 
     private final ProductService productService;
 
@@ -43,6 +44,18 @@ public class ProductController {
 
         Pageable pageable = PageRequest.of(page - 1, 10, buildSort(sortBy, sortDirection));
         return ResponseEntity.ok(productService.getAllProducts(keyword, status, pageable));
+    }
+
+    @GetMapping("/variants")
+    public ResponseEntity<PageResponseDto<ProductVariantDetailResponseDto>> getAllVariants(
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page number must be greater than or equal to 1") int page,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Status status,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+
+        Pageable pageable = PageRequest.of(page - 1, 10, buildSort(sortBy, sortDirection));
+        return ResponseEntity.ok(productService.getAllVariants(keyword, status, pageable));
     }
 
     @PreAuthorize("hasAuthority('warehouse-staff')")

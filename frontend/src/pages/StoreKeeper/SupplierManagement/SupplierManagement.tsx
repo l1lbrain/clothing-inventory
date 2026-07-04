@@ -576,35 +576,24 @@ export function SupplierManagement() {
             }
           />
           <CardBody className={styles.tableBody}>
-            {loading ? (
-              <div
-                style={{
-                  padding: "40px",
-                  textAlign: "center",
-                  color: "var(--color-subtext)",
-                }}
-              >
-                Đang tải dữ liệu nhà cung cấp...
-              </div>
-            ) : (
-              <>
-                <Table
-                  columns={columns}
-                  data={suppliers}
-                  rowKey="id"
-                  emptyText="Không tìm thấy nhà cung cấp"
+            <Table
+              columns={columns}
+              data={suppliers}
+              rowKey="id"
+              loading={loading}
+              emptyText="Không tìm thấy nhà cung cấp"
+            />
+            {totalElements > 0 && (
+              <div className={styles.paginationWrap}>
+                <Pagination
+                  pagination={{
+                    page: currentPage,
+                    pageSize: pageSize,
+                    total: totalElements,
+                  }}
+                  onPageChange={setCurrentPage}
                 />
-                <div className={styles.paginationWrap}>
-                  <Pagination
-                    pagination={{
-                      page: currentPage,
-                      pageSize: pageSize,
-                      total: totalElements,
-                    }}
-                    onPageChange={setCurrentPage}
-                  />
-                </div>
-              </>
+              </div>
             )}
           </CardBody>
         </Card>

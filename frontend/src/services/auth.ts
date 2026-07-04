@@ -125,3 +125,90 @@ export async function registerUser(payload: RegisterRequest): Promise<void> {
     body: JSON.stringify(payload),
   });
 }
+
+export interface UserResponse {
+  uuid: string;
+  username: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  status: "ACTIVE" | "INACTIVE" | "DELETED";
+  createdAt: string;
+  roles: string[];
+}
+
+export interface PaginatedUsers {
+  items: UserResponse[];
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface UserUpdateRequest {
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  status?: "ACTIVE" | "INACTIVE" | "DELETED";
+}
+
+// Lấy danh sách tài khoản phân trang (chỉ admin)
+export async function getUsersPage(
+  page: number,
+  keyword?: string,
+  status?: "ACTIVE" | "INACTIVE",
+  sortBy?: string,
+  sortDir?: "asc" | "desc",
+): Promise<PaginatedUsers> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (keyword) params.set("keyword", keyword.trim());
+  if (status) params.set("status", status);
+  if (sortBy) params.set("sortBy", sortBy);
+  if (sortDir) params.set("sortDirection", sortDir);
+  const url = `/users?${params.toString()}`;
+
+  const response = await apiFetch<ApiResponse<{
+    items: UserResponse[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  }>>(url);
+
+  return {
+    items: response.data.items || [],
+    page: response.data.page,
+    pageSize: response.data.size,
+    totalElements: response.data.totalElements,
+    totalPages: response.data.totalPages,
+  };
+}
+
+// Cập nhật thông tin tài khoản (chỉ admin)
+export async function updateUser(
+  uuid: string,
+  payload: UserUpdateRequest,
+): Promise<UserResponse> {
+  const response = await apiFetch<ApiResponse<UserResponse>>(`/users/${uuid}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      fullName: payload.fullName,
+      phone: payload.phone,
+      email: payload.email,
+      status: payload.status,
+    }),
+  });
+  return response.data;
+}
+
+// Cập nhật quyền/vai trò tài khoản (chỉ admin)
+export async function updateUserRoles(
+  uuid: string,
+  roles: string[],
+): Promise<UserResponse> {
+  const response = await apiFetch<ApiResponse<UserResponse>>(`/users/${uuid}/roles`, {
+    method: "PUT",
+    body: JSON.stringify({ roles }),
+  });
+  return response.data;
+}

@@ -18,7 +18,6 @@ function isPublicPath(path: string): boolean {
   const normalized = path.toLowerCase();
   return (
     normalized.includes("/auth/login") ||
-    normalized.includes("/auth/register") ||
     normalized.includes("/auth/send-otp")
   );
 }

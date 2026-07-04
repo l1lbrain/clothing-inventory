@@ -1,5 +1,6 @@
 package com.example.backend.mapper;
 
+import com.example.backend.dto.response.ProductVariantDetailResponseDto;
 import com.example.backend.dto.response.VariantResponseDto;
 import com.example.backend.model.ProductVariant;
 import org.mapstruct.Mapper;
@@ -14,6 +15,18 @@ public interface ProductVariantMapper {
     @Mapping(target = "productId", source = "variant.product.id")
     @Mapping(target = "attributes", expression = "java(buildAttributes(variant.getProduct().getOption1Name(), variant.getOption1Value(), variant.getProduct().getOption2Name(), variant.getOption2Value(), variant.getProduct().getOption3Name(), variant.getOption3Value()))")
     VariantResponseDto toResponse(ProductVariant variant);
+
+    @Mapping(target = "variantId", source = "id")
+    @Mapping(target = "productId", source = "product.id")
+    @Mapping(target = "productName", source = "product.name")
+    @Mapping(target = "productCode", source = "product.code")
+    @Mapping(target = "brand", source = "product.brand")
+    @Mapping(target = "description", source = "product.description")
+    @Mapping(target = "imageUrl", source = "product.imageUrl")
+    @Mapping(target = "unit", source = "product.unit")
+    @Mapping(target = "categoryName", source = "product.category.name")
+    @Mapping(target = "attributes", expression = "java(buildAttributes(variant.getProduct().getOption1Name(), variant.getOption1Value(), variant.getProduct().getOption2Name(), variant.getOption2Value(), variant.getProduct().getOption3Name(), variant.getOption3Value()))")
+    ProductVariantDetailResponseDto toDetailResponse(ProductVariant variant);
 
     default Map<String, String> buildAttributes(String n1, String v1, String n2, String v2, String n3, String v3) {
         Map<String, String> attrs = new LinkedHashMap<>();

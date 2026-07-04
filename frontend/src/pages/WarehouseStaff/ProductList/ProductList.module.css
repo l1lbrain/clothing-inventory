@@ -564,8 +564,8 @@
 }
 
 .statusInactive {
-  background-color: var(--color-hover);
-  color: var(--color-subtext);
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
 .sortableHeader {

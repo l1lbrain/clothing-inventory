@@ -75,7 +75,18 @@
 }
 
 .loadingRow i {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  box-sizing: border-box;
+}
+
+.loadingRow i::before {
+  content: none !important;
 }
 
 @keyframes spin {

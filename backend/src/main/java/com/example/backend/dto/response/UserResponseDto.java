@@ -4,6 +4,7 @@ import com.example.backend.model.enums.Status;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Data
 public class UserResponseDto {
@@ -14,4 +15,5 @@ public class UserResponseDto {
     private String email;
     private Status status;
     private LocalDateTime createdAt;
+    private Set<String> roles;
 }

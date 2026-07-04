@@ -79,7 +79,18 @@
 }
 
 .loading i {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  box-sizing: border-box;
+}
+
+.loading i::before {
+  content: none !important;
 }
 
 @keyframes spin {

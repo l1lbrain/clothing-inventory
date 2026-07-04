@@ -367,3 +367,29 @@
 .tableBody {
   padding: 0;
 }
+
+.sortableHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color var(--transition);
+}
+
+.sortableHeader:hover {
+  color: var(--color-primary);
+}
+
+.sortIcon {
+  font-size: 0.72rem;
+  color: var(--color-subtext);
+  opacity: 0.45;
+  transition: opacity var(--transition), color var(--transition);
+}
+
+.sortIconActive {
+  font-size: 0.72rem;
+  color: var(--color-primary);
+}

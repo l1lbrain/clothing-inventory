@@ -79,10 +79,17 @@ function mapBackendCategoryToFrontend(categoryName: string): {
   };
 }
 
-export function mapBackendVariantToFrontend(v: VariantResponseDto): Variant {
-  const option1Value = v.option1Value ?? null;
-  const option2Value = v.option2Value ?? null;
-  const option3Value = v.option3Value ?? null;
+export function mapBackendVariantToFrontend(
+  v: VariantResponseDto,
+  option1Name?: string | null,
+  option2Name?: string | null,
+  option3Name?: string | null,
+): Variant {
+  // Đọc giá trị positional từ attributes map theo đúng key là tên option
+  const attrs = v.attributes || {};
+  const option1Value = (option1Name ? (attrs[option1Name] ?? null) : null) ?? v.option1Value ?? null;
+  const option2Value = (option2Name ? (attrs[option2Name] ?? null) : null) ?? v.option2Value ?? null;
+  const option3Value = (option3Name ? (attrs[option3Name] ?? null) : null) ?? v.option3Value ?? null;
 
   return {
     id: String(v.id),
@@ -90,9 +97,6 @@ export function mapBackendVariantToFrontend(v: VariantResponseDto): Variant {
     importPrice: v.purchasePrice,
     salePrice: v.salePrice,
     stock: v.quantityOnHand || 0,
-    size: option2Value || "",
-    color: option1Value || "",
-    material: option3Value || "",
     note: "",
     status: v.status,
     option1Value,
@@ -106,7 +110,7 @@ export function mapBackendProductToFrontend(p: ProductResponseDto): Product {
     p.categoryName,
   );
   const variants = p.variants
-    ? p.variants.map((v) => mapBackendVariantToFrontend(v))
+    ? p.variants.map((v) => mapBackendVariantToFrontend(v, p.option1Name, p.option2Name, p.option3Name))
     : [];
 
   // Tổng tồn kho
@@ -117,24 +121,6 @@ export function mapBackendProductToFrontend(p: ProductResponseDto): Product {
   const salePrices = variants.map((v) => v.salePrice);
   const minImportPrice = importPrices.length ? Math.min(...importPrices) : 0;
   const minSalePrice = salePrices.length ? Math.min(...salePrices) : 0;
-
-  // Tóm tắt thuộc tính
-  const uniqueSizes = Array.from(
-    new Set(variants.map((v) => v.size).filter(Boolean)),
-  );
-  const uniqueColors = Array.from(
-    new Set(variants.map((v) => v.color).filter(Boolean)),
-  );
-  const uniqueMaterials = Array.from(
-    new Set(variants.map((v) => v.material).filter(Boolean)),
-  );
-
-  const sizeLabel =
-    uniqueSizes.length > 1 ? "Nhiều kích thước" : uniqueSizes[0] || "—";
-  const colorLabel =
-    uniqueColors.length > 1 ? "Nhiều màu sắc" : uniqueColors[0] || "—";
-  const materialLabel =
-    uniqueMaterials.length > 1 ? "Nhiều chất liệu" : uniqueMaterials[0] || "—";
 
   return {
     id: String(p.id),
@@ -151,9 +137,6 @@ export function mapBackendProductToFrontend(p: ProductResponseDto): Product {
     image: "",
     createdAt: p.createdAt || "",
     updatedAt: p.updatedAt || "",
-    size: sizeLabel,
-    color: colorLabel,
-    material: materialLabel,
     brand: p.brand || "",
     status: p.status,
     variants,

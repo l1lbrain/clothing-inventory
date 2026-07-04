@@ -37,18 +37,7 @@ export function Sidebar({ collapsed = false, user: propUser }: SidebarProps) {
         )}
       </div>
 
-      {getUserAuthorities().includes("admin") && (
-        <NavLink
-          to={ROUTES.DASHBOARD}
-          className={({ isActive }) =>
-            [styles.navItem, isActive ? styles.active : ""].join(" ")
-          }
-          end
-        >
-          <i className="fi fi-rr-dashboard" aria-hidden />
-          {!collapsed && <span>Dashboard</span>}
-        </NavLink>
-      )}
+
 
       <div className={styles.navGroups}>
         {NAV_GROUPS.filter(

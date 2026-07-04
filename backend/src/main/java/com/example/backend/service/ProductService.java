@@ -5,9 +5,11 @@ import com.example.backend.dto.request.ProductUpdateRequestDto;
 import com.example.backend.dto.request.VariantBulkPriceUpdateRequestDto;
 import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.ProductResponseDto;
+import com.example.backend.dto.response.ProductVariantDetailResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.ProductMapper;
+import com.example.backend.mapper.ProductVariantMapper;
 import com.example.backend.model.Category;
 import com.example.backend.model.Product;
 import com.example.backend.model.ProductVariant;
@@ -16,6 +18,7 @@ import com.example.backend.repository.CategoryRepository;
 import com.example.backend.repository.ProductRepository;
 import com.example.backend.repository.ProductVariantRepository;
 import com.example.backend.repository.PurchaseOrderDetailRepository;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -43,6 +46,7 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final PurchaseOrderDetailRepository purchaseOrderDetailRepository;
     private final ProductMapper productMapper;
+    private final ProductVariantMapper variantMapper;
 
     public PageResponseDto<ProductResponseDto> getAllProducts(String keyword, Status status, Pageable pageable) {
         Specification<Product> spec = (root, query, criteriaBuilder) -> {
@@ -61,6 +65,30 @@ public class ProductService {
         };
         Page<Product> productPage = productRepository.findAll(spec, pageable);
         return PageResponseDto.from(productPage.map(productMapper::toResponse));
+    }
+
+    public PageResponseDto<ProductVariantDetailResponseDto> getAllVariants(String keyword, Status status, Pageable pageable) {
+        Specification<ProductVariant> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.notEqual(root.get("status"), Status.DELETED));
+
+            if (StringUtils.hasText(keyword)) {
+                String keywordLower = "%" + keyword.toLowerCase() + "%";
+                Join<ProductVariant, Product> product = root.join("product");
+                Predicate skuPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("sku")), keywordLower);
+                Predicate productNamePredicate = criteriaBuilder.like(criteriaBuilder.lower(product.get("name")), keywordLower);
+                predicates.add(criteriaBuilder.or(skuPredicate, productNamePredicate));
+            }
+
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<ProductVariant> variantPage = variantRepository.findAll(spec, pageable);
+        return PageResponseDto.from(variantPage.map(variantMapper::toDetailResponse));
     }
 
     @Transactional
@@ -246,7 +274,7 @@ public class ProductService {
         affectedProducts.forEach(this::syncParentStatus);
         return affectedProducts.stream()
                 .map(productMapper::toResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     private void syncParentStatus(Product product) {
