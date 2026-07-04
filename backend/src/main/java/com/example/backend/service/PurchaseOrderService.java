@@ -89,6 +89,7 @@ public class PurchaseOrderService {
         User currentUser = getCurrentUser();
 
         PurchaseOrder purchaseOrder = PurchaseOrder.builder()
+                .code(request.getCode())
                 .supplier(supplier)
                 .createdBy(currentUser)
                 .orderDate(request.getOrderDate())

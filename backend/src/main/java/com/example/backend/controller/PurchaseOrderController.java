@@ -24,7 +24,7 @@ import java.util.Set;
 @Validated
 public class PurchaseOrderController {
 
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("orderDate", "totalAmount", "receivedDate", "createdAt", "status");
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("orderDate", "totalAmount", "receivedDate", "createdAt", "status", "totalQuantity");
 
     private final PurchaseOrderService purchaseOrderService;
 
