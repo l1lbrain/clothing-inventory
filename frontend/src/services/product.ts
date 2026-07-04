@@ -16,6 +16,7 @@ export interface VariantResponseDto {
   // Ví dụ: { "Màu sắc": "Đỏ", "Kích thước": "M" }
   // Không có option1Value/2/3Value riêng lẻ
   attributes?: Record<string, string>;
+  hasTransactions?: boolean;
 }
 
 export interface ProductVariantDetailResponseDto {
@@ -104,6 +105,7 @@ export function mapBackendVariantToFrontend(
     option1Value,
     option2Value,
     option3Value,
+    hasTransactions: v.hasTransactions || false,
   };
 }
 
@@ -317,6 +319,8 @@ export interface VariantUpdatePayload {
   purchasePrice: number;
   salePrice: number;
   status: string;
+  quantityOnHand?: number | null;
+  adjustReason?: string | null;
 }
 
 export async function updateVariant(

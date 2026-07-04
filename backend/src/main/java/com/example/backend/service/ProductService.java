@@ -3,22 +3,28 @@ package com.example.backend.service;
 import com.example.backend.dto.request.ProductCreateRequestDto;
 import com.example.backend.dto.request.ProductUpdateRequestDto;
 import com.example.backend.dto.request.VariantBulkPriceUpdateRequestDto;
+import com.example.backend.dto.request.VariantUpdateRequestDto;
 import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.ProductResponseDto;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.ProductMapper;
 import com.example.backend.model.Category;
+import com.example.backend.model.InventoryTransaction;
 import com.example.backend.model.Product;
 import com.example.backend.model.ProductVariant;
+import com.example.backend.model.User;
 import com.example.backend.model.enums.Status;
 import com.example.backend.repository.CategoryRepository;
+import com.example.backend.repository.InventoryTransactionRepository;
 import com.example.backend.repository.ProductRepository;
 import com.example.backend.repository.ProductVariantRepository;
 import com.example.backend.repository.PurchaseOrderDetailRepository;
+import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -36,10 +42,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductService {
 
+    private static final String TRANSACTION_TYPE_ADJUSTMENT = "ADJUSTMENT";
+
     private final ProductRepository productRepository;
     private final ProductVariantRepository variantRepository;
     private final CategoryRepository categoryRepository;
     private final PurchaseOrderDetailRepository purchaseOrderDetailRepository;
+    private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final UserRepository userRepository;
     private final ProductMapper productMapper;
 
     public PageResponseDto<ProductResponseDto> getAllProducts(String keyword, Pageable pageable) {
@@ -178,6 +188,12 @@ public class ProductService {
         boolean hasTransactions = purchaseOrderDetailRepository.existsByVariantId(existingVariant.getId());
 
         if (hasTransactions) {
+            boolean optionsChanged = !Objects.equals(item.getOption1Value(), existingVariant.getOption1Value()) ||
+                                     !Objects.equals(item.getOption2Value(), existingVariant.getOption2Value()) ||
+                                     !Objects.equals(item.getOption3Value(), existingVariant.getOption3Value());
+            if (optionsChanged) {
+                throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
+            }
             if (item.getPurchasePrice() != null) existingVariant.setPurchasePrice(item.getPurchasePrice());
             if (item.getSalePrice() != null) existingVariant.setSalePrice(item.getSalePrice());
             if (item.getStatus() != null) existingVariant.setStatus(item.getStatus());
@@ -201,6 +217,78 @@ public class ProductService {
             }
             existingVariant.setSku(newSku);
         }
+    }
+
+    @Transactional
+    public ProductResponseDto updateVariant(Long variantId, VariantUpdateRequestDto request) {
+        ProductVariant variant = variantRepository.findById(variantId)
+                .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
+
+        // Cập nhật các trường cơ bản
+        if (request.getPurchasePrice() != null) variant.setPurchasePrice(request.getPurchasePrice());
+        if (request.getSalePrice() != null) variant.setSalePrice(request.getSalePrice());
+        if (request.getStatus() != null) variant.setStatus(request.getStatus());
+
+        boolean hasTransactions = purchaseOrderDetailRepository.existsByVariantId(variantId);
+        if (hasTransactions) {
+            boolean optionsChanged = !Objects.equals(request.getOption1Value(), variant.getOption1Value()) ||
+                                     !Objects.equals(request.getOption2Value(), variant.getOption2Value()) ||
+                                     !Objects.equals(request.getOption3Value(), variant.getOption3Value());
+            if (optionsChanged) {
+                throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
+            }
+        } else {
+            // Chỉ cho phép sửa option values khi chưa có giao dịch
+            variant.setOption1Value(request.getOption1Value());
+            variant.setOption2Value(request.getOption2Value());
+            variant.setOption3Value(request.getOption3Value());
+
+            String newSku = generateSku(
+                    variant.getProduct().getCode(),
+                    request.getOption1Value(),
+                    request.getOption2Value(),
+                    request.getOption3Value());
+            if (!newSku.equals(variant.getSku())) {
+                if (variantRepository.existsBySku(newSku)) {
+                    throw new InvalidException(ErrorCode.SKU_ALREADY_EXISTS);
+                }
+                variant.setSku(newSku);
+            }
+        }
+
+        // Xử lý thay đổi số lượng tồn kho
+        if (request.getQuantityOnHand() != null) {
+            Integer quantityBefore = variant.getQuantityOnHand();
+            Integer quantityAfter = request.getQuantityOnHand();
+
+            if (!quantityBefore.equals(quantityAfter)) {
+                variant.setQuantityOnHand(quantityAfter);
+
+                User currentUser = getCurrentUser();
+                InventoryTransaction transaction = InventoryTransaction.builder()
+                        .variant(variant)
+                        .purchaseOrderDetail(null)
+                        .transactionType(TRANSACTION_TYPE_ADJUSTMENT)
+                        .quantity(quantityAfter - quantityBefore)
+                        .quantityBefore(quantityBefore)
+                        .quantityAfter(quantityAfter)
+                        .note(request.getAdjustReason())
+                        .createdBy(currentUser)
+                        .build();
+                inventoryTransactionRepository.save(transaction);
+            }
+        }
+
+        // Đồng bộ trạng thái sản phẩm cha
+        syncParentStatus(variant.getProduct());
+
+        return productMapper.toResponse(variant.getProduct());
+    }
+
+    private User getCurrentUser() {
+        String uuid = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUuid(uuid)
+                .orElseThrow(() -> new InvalidException(ErrorCode.ACCOUNT_NOT_FOUND));
     }
 
     @Transactional

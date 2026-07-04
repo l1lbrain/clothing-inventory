@@ -4,6 +4,7 @@ import com.example.backend.dto.request.ProductCreateRequestDto;
 import com.example.backend.dto.request.ProductUpdateRequestDto;
 import com.example.backend.dto.request.VariantBulkPriceUpdateRequestDto;
 import com.example.backend.dto.request.VariantDeleteRequestDto;
+import com.example.backend.dto.request.VariantUpdateRequestDto;
 import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.ProductResponseDto;
 import com.example.backend.service.ProductService;
@@ -44,6 +45,13 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponseDto> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequestDto request) {
         ProductResponseDto updatedProduct = productService.updateProduct(id, request);
+        return ResponseEntity.ok(updatedProduct);
+    }
+
+    @PreAuthorize("hasAuthority('warehouse-staff')")
+    @PutMapping("/variants/{id}")
+    public ResponseEntity<ProductResponseDto> updateVariant(@PathVariable Long id, @Valid @RequestBody VariantUpdateRequestDto request) {
+        ProductResponseDto updatedProduct = productService.updateVariant(id, request);
         return ResponseEntity.ok(updatedProduct);
     }
 

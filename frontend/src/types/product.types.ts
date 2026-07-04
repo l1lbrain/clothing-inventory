@@ -17,6 +17,7 @@ export interface Variant {
   option1Value?: string | null;
   option2Value?: string | null;
   option3Value?: string | null;
+  hasTransactions?: boolean;
 }
 
 export interface Product {

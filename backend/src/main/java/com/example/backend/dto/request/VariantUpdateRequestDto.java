@@ -28,4 +28,10 @@ public class VariantUpdateRequestDto {
 
     @NotNull(message = "Status cannot be null")
     private Status status;
+
+    @PositiveOrZero(message = "Quantity on hand must be greater than or equal to 0")
+    private Integer quantityOnHand;
+
+    @Size(max = 500, message = "Adjust reason cannot exceed 500 characters")
+    private String adjustReason;
 }

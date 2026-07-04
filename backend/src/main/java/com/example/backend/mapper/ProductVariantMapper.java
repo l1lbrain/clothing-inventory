@@ -13,6 +13,7 @@ public interface ProductVariantMapper {
 
     @Mapping(target = "productId", source = "variant.product.id")
     @Mapping(target = "attributes", expression = "java(buildAttributes(variant.getProduct().getOption1Name(), variant.getOption1Value(), variant.getProduct().getOption2Name(), variant.getOption2Value(), variant.getProduct().getOption3Name(), variant.getOption3Value()))")
+    @Mapping(target = "hasTransactions", expression = "java(variant.getPurchaseOrderDetails() != null && !variant.getPurchaseOrderDetails().isEmpty())")
     VariantResponseDto toResponse(ProductVariant variant);
 
     default Map<String, String> buildAttributes(String n1, String v1, String n2, String v2, String n3, String v3) {
