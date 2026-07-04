@@ -265,9 +265,9 @@ export function PurchaseOrderPage() {
                 image: p.image,
                 createdAt: p.createdAt,
                 updatedAt: p.updatedAt,
-                size: v.size,
-                color: v.color,
-                material: v.material,
+                option1Value: v.option1Value,
+                option2Value: v.option2Value,
+                option3Value: v.option3Value,
                 variants: [],
               })),
           );

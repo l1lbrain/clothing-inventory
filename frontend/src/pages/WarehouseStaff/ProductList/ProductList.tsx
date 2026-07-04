@@ -39,9 +39,6 @@ export function ProductList() {
     importPrice: "",
     salePrice: "",
     description: "",
-    size: "",
-    color: "",
-    material: "",
     brand: "",
     status: "ACTIVE",
   });
@@ -123,9 +120,9 @@ export function ProductList() {
     sku: "",
     importPrice: "",
     salePrice: "",
-    size: "",
-    color: "",
-    material: "",
+    option1Value: "",
+    option2Value: "",
+    option3Value: "",
     stock: "",
     note: "",
     status: "ACTIVE",
@@ -215,9 +212,6 @@ export function ProductList() {
       importPrice: String(product.importPrice),
       salePrice: String(product.salePrice),
       description: product.description || "",
-      size: product.size || "",
-      color: product.color || "",
-      material: product.material || "",
       brand: product.brand || "",
       status: product.status || "ACTIVE",
     });
@@ -227,54 +221,37 @@ export function ProductList() {
     const currentAttrs: ProductAttribute[] = [];
     
     if (product.option1Name) {
-      const values = Array.from(new Set(product.variants.map((v) => v.option1Value || v.color).filter(Boolean))) as string[];
+      const values = Array.from(new Set(product.variants.map((v) => v.option1Value).filter(Boolean))) as string[];
       if (values.length > 0) {
         currentAttrs.push({ name: product.option1Name, values });
       }
     }
     if (product.option2Name) {
-      const values = Array.from(new Set(product.variants.map((v) => v.option2Value || v.size).filter(Boolean))) as string[];
+      const values = Array.from(new Set(product.variants.map((v) => v.option2Value).filter(Boolean))) as string[];
       if (values.length > 0) {
         currentAttrs.push({ name: product.option2Name, values });
       }
     }
     if (product.option3Name) {
-      const values = Array.from(new Set(product.variants.map((v) => v.option3Value || v.material).filter(Boolean))) as string[];
+      const values = Array.from(new Set(product.variants.map((v) => v.option3Value).filter(Boolean))) as string[];
       if (values.length > 0) {
         currentAttrs.push({ name: product.option3Name, values });
       }
     }
 
-    if (currentAttrs.length === 0) {
-      const sizes = Array.from(new Set(product.variants.map((v) => v.size).filter(Boolean))) as string[];
-      const colors = Array.from(new Set(product.variants.map((v) => v.color).filter(Boolean))) as string[];
-      const materials = Array.from(new Set(product.variants.map((v) => v.material).filter(Boolean))) as string[];
-
-      if (colors.length > 0) {
-        currentAttrs.push({ name: "Màu sắc", values: colors });
-      }
-      if (sizes.length > 0) {
-        currentAttrs.push({ name: "Kích thước", values: sizes });
-      }
-      if (materials.length > 0) {
-        currentAttrs.push({ name: "Chất liệu", values: materials });
-      }
-    }
+    // Nếu không có option nào được định nghĩa thì không có thuộc tính để hiển thị
+    // (trường hợp này sản phẩm không có variant attributes)
 
     setAttributes(currentAttrs);
     setTagInputs(["", "", ""]);
 
-    // Phân tích giá trị override giá
+    // Build variantPriceOverrides dựa vào option1/2/3Value (index-based, không hardcode tên)
     const overrides: Record<string, { importPrice: string; salePrice: string }> = {};
-    const colors = currentAttrs.find((a) => a.name === product.option1Name || a.name === "Màu sắc")?.values || [];
-    const sizes = currentAttrs.find((a) => a.name === product.option2Name || a.name === "Kích thước")?.values || [];
-    const materials = currentAttrs.find((a) => a.name === product.option3Name || a.name === "Chất liệu")?.values || [];
-
     product.variants.forEach((v) => {
       const vals: string[] = [];
-      if (colors.length > 0 && v.color) vals.push(v.color);
-      if (sizes.length > 0 && v.size) vals.push(v.size);
-      if (materials.length > 0 && v.material) vals.push(v.material);
+      if (currentAttrs.length >= 1 && v.option1Value) vals.push(v.option1Value);
+      if (currentAttrs.length >= 2 && v.option2Value) vals.push(v.option2Value);
+      if (currentAttrs.length >= 3 && v.option3Value) vals.push(v.option3Value);
 
       if (vals.length > 0) {
         const label = vals.join(" / ");
@@ -304,19 +281,17 @@ export function ProductList() {
   };
 
   const removeAttribute = (index: number) => {
-    const attr = attributes[index];
     if (selectedProduct) {
-      const lowerName = attr.name.toLowerCase();
-      const withStock = selectedProduct.variants.filter((v) => {
-        if (v.stock <= 0) return false;
-        if (lowerName.includes("màu") || lowerName.includes("color")) return !!v.color;
-        if (lowerName.includes("kích thước") || lowerName.includes("size")) return !!v.size;
-        if (lowerName.includes("chất liệu") || lowerName.includes("material")) return !!v.material;
-        return false;
-      });
+      // Thuộc tính ở vị trí index tương ứng với option(index+1)Value trên variant
+      const getOptionVal = (v: Variant) =>
+        index === 0 ? v.option1Value : index === 1 ? v.option2Value : v.option3Value;
+
+      const withStock = selectedProduct.variants.filter(
+        (v) => v.stock > 0 && !!getOptionVal(v)
+      );
 
       if (withStock.length > 0) {
-        showToast(`Không thể xóa thuộc tính "${attr.name}" vì có phiên bản vẫn còn tồn kho!`, "warning");
+        showToast(`Không thể xóa thuộc tính “${attributes[index].name}” vì có phiên bản vẫn còn tồn kho!`, "warning");
         return;
       }
     }
@@ -351,23 +326,17 @@ export function ProductList() {
     const attr = attributes[attrIndex];
     const val = attr.values[valIndex];
     if (selectedProduct) {
-      const lowerName = attr.name.toLowerCase();
+      // Thuộc tính ở vị trí attrIndex tương ứng với option(attrIndex+1)Value
+      const getOptionVal = (v: Variant) =>
+        attrIndex === 0 ? v.option1Value : attrIndex === 1 ? v.option2Value : attrIndex === 2 ? v.option3Value : undefined;
+
       const withStock = selectedProduct.variants.filter((v) => {
         if (v.stock <= 0) return false;
-        if (lowerName.includes("màu") || lowerName.includes("color")) {
-          return v.color?.toLowerCase() === val.toLowerCase();
-        }
-        if (lowerName.includes("kích thước") || lowerName.includes("size")) {
-          return v.size?.toLowerCase() === val.toLowerCase();
-        }
-        if (lowerName.includes("chất liệu") || lowerName.includes("material")) {
-          return v.material?.toLowerCase() === val.toLowerCase();
-        }
-        return false;
+        return getOptionVal(v)?.toLowerCase() === val.toLowerCase();
       });
 
       if (withStock.length > 0) {
-        showToast(`Không thể xóa giá trị "${val}" vì có phiên bản vẫn còn tồn kho!`, "warning");
+        showToast(`Không thể xóa giá trị “${val}” vì có phiên bản vẫn còn tồn kho!`, "warning");
         return;
       }
     }
@@ -568,27 +537,20 @@ export function ProductList() {
         importPrice: impPrice,
         salePrice: salPrice,
         stock: existing?.stock || 0,
-        size: undefined,
-        color: undefined,
-        material: undefined,
         note: existing?.note || "",
         status: form.status,
       }];
     } else {
-      const colors = attributes.find((a) => a.name === "Màu sắc")?.values || [];
-      const sizes = attributes.find((a) => a.name === "Kích thước")?.values || [];
-      const materials = attributes.find((a) => a.name === "Chất liệu")?.values || [];
-
       newVariants = visibleVariants.map((vv: VariantRow, idx: number) => {
-        const sizeVal = sizes.length > 0 ? vv.values[attributes.findIndex(a => a.name === "Kích thước")] : "";
-        const colorVal = colors.length > 0 ? vv.values[attributes.findIndex(a => a.name === "Màu sắc")] : "";
-        const materialVal = materials.length > 0 ? vv.values[attributes.findIndex(a => a.name === "Chất liệu")] : "";
+        const opt1Val = vv.values[0] || "";
+        const opt2Val = vv.values[1] || "";
+        const opt3Val = vv.values[2] || "";
 
         const existing = selectedProduct.variants.find(
           (v) =>
-            (sizeVal ? v.size === sizeVal : !v.size) &&
-            (colorVal ? v.color === colorVal : !v.color) &&
-            (materialVal ? v.material === materialVal : !v.material)
+            (opt1Val ? v.option1Value === opt1Val : !v.option1Value) &&
+            (opt2Val ? v.option2Value === opt2Val : !v.option2Value) &&
+            (opt3Val ? v.option3Value === opt3Val : !v.option3Value)
         );
 
         const override = variantPriceOverrides[vv.label];
@@ -601,16 +563,15 @@ export function ProductList() {
           importPrice: impPrice,
           salePrice: salePrice,
           stock: existing?.stock || 0,
-          size: sizeVal || undefined,
-          color: colorVal || undefined,
-          material: materialVal || undefined,
+          option1Value: opt1Val || undefined,
+          option2Value: opt2Val || undefined,
+          option3Value: opt3Val || undefined,
           note: existing?.note || "",
           status: form.status,
         };
       });
     }
 
-    // Build the backend payload matching ProductUpdateRequestDto
     const payload: ProductUpdatePayload = {
       name: form.name,
       categoryId: Number(form.category),
@@ -622,22 +583,13 @@ export function ProductList() {
       option2Name: attributes[1]?.name || null,
       option3Name: attributes[2]?.name || null,
       variants: newVariants.map((v) => {
-        const getValByName = (name: string | null | undefined) => {
-          if (!name) return null;
-          const lower = name.toLowerCase();
-          if (lower.includes("màu") || lower.includes("color")) return v.color || null;
-          if (lower.includes("kích thước") || lower.includes("size")) return v.size || null;
-          if (lower.includes("chất liệu") || lower.includes("material")) return v.material || null;
-          return null;
-        };
-
         const idNum = Number(v.id);
         return {
           id: isNaN(idNum) || idNum > 1e13 ? null : idNum,
           sku: v.sku || null,
-          option1Value: getValByName(attributes[0]?.name),
-          option2Value: getValByName(attributes[1]?.name),
-          option3Value: getValByName(attributes[2]?.name),
+          option1Value: v.option1Value || null,
+          option2Value: v.option2Value || null,
+          option3Value: v.option3Value || null,
           purchasePrice: v.importPrice,
           salePrice: v.salePrice,
           status: v.status || "ACTIVE",
@@ -672,14 +624,20 @@ export function ProductList() {
     if (!selectedProduct) return true;
 
     // Kiểm tra thuộc tính thay đổi
+    // So sánh thuộc tính dựa vào option1/2/3Name (tên thực của sản phẩm)
     const currentAttrs: ProductAttribute[] = [];
-    const sizes = Array.from(new Set(selectedProduct.variants.map((v) => v.size).filter(Boolean))) as string[];
-    const colors = Array.from(new Set(selectedProduct.variants.map((v) => v.color).filter(Boolean))) as string[];
-    const materials = Array.from(new Set(selectedProduct.variants.map((v) => v.material).filter(Boolean))) as string[];
-
-    if (colors.length > 0) currentAttrs.push({ name: "Màu sắc", values: colors });
-    if (sizes.length > 0) currentAttrs.push({ name: "Kích thước", values: sizes });
-    if (materials.length > 0) currentAttrs.push({ name: "Chất liệu", values: materials });
+    if (selectedProduct.option1Name) {
+      const vals = Array.from(new Set(selectedProduct.variants.map((v) => v.option1Value).filter(Boolean))) as string[];
+      if (vals.length > 0) currentAttrs.push({ name: selectedProduct.option1Name, values: vals });
+    }
+    if (selectedProduct.option2Name) {
+      const vals = Array.from(new Set(selectedProduct.variants.map((v) => v.option2Value).filter(Boolean))) as string[];
+      if (vals.length > 0) currentAttrs.push({ name: selectedProduct.option2Name, values: vals });
+    }
+    if (selectedProduct.option3Name) {
+      const vals = Array.from(new Set(selectedProduct.variants.map((v) => v.option3Value).filter(Boolean))) as string[];
+      if (vals.length > 0) currentAttrs.push({ name: selectedProduct.option3Name, values: vals });
+    }
 
     const attrsChanged = JSON.stringify(attributes) !== JSON.stringify(currentAttrs);
 
@@ -701,9 +659,10 @@ export function ProductList() {
       sku: variant.sku,
       importPrice: String(variant.importPrice),
       salePrice: String(variant.salePrice),
-      size: variant.size || "",
-      color: variant.color || "",
-      material: variant.material || "",
+      // Lưu giá trị thuộc tính theo index (option1/2/3Value), không phụ thuộc tên
+      option1Value: variant.option1Value || "",
+      option2Value: variant.option2Value || "",
+      option3Value: variant.option3Value || "",
       stock: String(variant.stock),
       note: variant.note || "",
       status: variant.status || "ACTIVE",
@@ -725,22 +684,13 @@ export function ProductList() {
     }
     if (!selectedProduct || !selectedVariant) return;
 
-    // Check duplication across other variants
+    // Kiểm tra trùng biến thể (so sánh theo option1/2/3Value)
     const isDuplicate = selectedProduct.variants.some((v) => {
       if (v.id === selectedVariant.id) return false;
-
-      const vSize = v.size || "";
-      const vColor = v.color || "";
-      const vMaterial = v.material || "";
-
-      const formSize = variantForm.size || "";
-      const formColor = variantForm.color || "";
-      const formMaterial = variantForm.material || "";
-
       return (
-        vSize.trim().toLowerCase() === formSize.trim().toLowerCase() &&
-        vColor.trim().toLowerCase() === formColor.trim().toLowerCase() &&
-        vMaterial.trim().toLowerCase() === formMaterial.trim().toLowerCase()
+        (v.option1Value || "").trim().toLowerCase() === (variantForm.option1Value || "").trim().toLowerCase() &&
+        (v.option2Value || "").trim().toLowerCase() === (variantForm.option2Value || "").trim().toLowerCase() &&
+        (v.option3Value || "").trim().toLowerCase() === (variantForm.option3Value || "").trim().toLowerCase()
       );
     });
 
@@ -750,23 +700,11 @@ export function ProductList() {
     }
 
     try {
-      const opt1Name = selectedProduct.option1Name;
-      const opt2Name = selectedProduct.option2Name;
-      const opt3Name = selectedProduct.option3Name;
-
-      const getValByName = (name: string | null | undefined) => {
-        if (!name) return null;
-        const lower = name.toLowerCase();
-        if (lower.includes("màu") || lower.includes("color")) return variantForm.color;
-        if (lower.includes("kích thước") || lower.includes("size")) return variantForm.size;
-        if (lower.includes("chất liệu") || lower.includes("material")) return variantForm.material;
-        return null;
-      };
-
+      // Gửi trực tiếp option1/2/3Value (index-based), không dùng keyword matching
       const payload: VariantUpdatePayload = {
-        option1Value: getValByName(opt1Name),
-        option2Value: getValByName(opt2Name),
-        option3Value: getValByName(opt3Name),
+        option1Value: variantForm.option1Value || null,
+        option2Value: variantForm.option2Value || null,
+        option3Value: variantForm.option3Value || null,
         purchasePrice: Number(variantForm.importPrice),
         salePrice: Number(variantForm.salePrice),
         status: variantForm.status,
@@ -976,98 +914,94 @@ export function ProductList() {
       variantForm.sku === selectedVariant.sku &&
       variantForm.importPrice === String(selectedVariant.importPrice) &&
       variantForm.salePrice === String(selectedVariant.salePrice) &&
-      variantForm.size === (selectedVariant.size || "") &&
-      variantForm.color === (selectedVariant.color || "") &&
-      variantForm.material === (selectedVariant.material || "") &&
+      variantForm.option1Value === (selectedVariant.option1Value || "") &&
+      variantForm.option2Value === (selectedVariant.option2Value || "") &&
+      variantForm.option3Value === (selectedVariant.option3Value || "") &&
       variantForm.status === (selectedVariant.status || "ACTIVE")
     );
   };
 
-  const renderVariantEditForm = () => (
-    <div className={styles.form}>
-      <div className={styles.formGrid}>
+  const renderVariantEditForm = () => {
+    // option1/2/3Name quyết định thuộc tính nào có mặt — render động, không hardcode tên
+    const optionSlots = [
+      { key: "option1Value" as const, name: selectedProduct?.option1Name },
+      { key: "option2Value" as const, name: selectedProduct?.option2Name },
+      { key: "option3Value" as const, name: selectedProduct?.option3Name },
+    ].filter((slot) => !!slot.name);
 
-        <Input
-          id="var-importPrice"
-          label="Giá nhập"
-          required
-          type="text"
-          suffix="VND"
-          value={formatInputNumber(variantForm.importPrice)}
-          onChange={(e) => {
-            const rawVal = e.target.value
-              .replace(/\./g, "")
-              .replace(/[^0-9]/g, "");
-            setVariantForm((prev) => ({ ...prev, importPrice: rawVal }));
-            if (errors.importPrice)
-              setErrors((prev) => ({ ...prev, importPrice: "" }));
-          }}
-          error={errors.importPrice}
-          placeholder="0"
-        />
+    return (
+      <div className={styles.form}>
+        <div className={styles.formGrid}>
 
-        <Input
-          id="var-salePrice"
-          label="Giá bán"
-          required
-          type="text"
-          suffix="VND"
-          value={formatInputNumber(variantForm.salePrice)}
-          onChange={(e) => {
-            const rawVal = e.target.value
-              .replace(/\./g, "")
-              .replace(/[^0-9]/g, "");
-            setVariantForm((prev) => ({ ...prev, salePrice: rawVal }));
-            if (errors.salePrice)
-              setErrors((prev) => ({ ...prev, salePrice: "" }));
-          }}
-          error={errors.salePrice}
-          placeholder="0"
-        />
+          <Input
+            id="var-importPrice"
+            label="Giá nhập"
+            required
+            type="text"
+            suffix="VND"
+            value={formatInputNumber(variantForm.importPrice)}
+            onChange={(e) => {
+              const rawVal = e.target.value
+                .replace(/\./g, "")
+                .replace(/[^0-9]/g, "");
+              setVariantForm((prev) => ({ ...prev, importPrice: rawVal }));
+              if (errors.importPrice)
+                setErrors((prev) => ({ ...prev, importPrice: "" }));
+            }}
+            error={errors.importPrice}
+            placeholder="0"
+          />
 
-        <Input
-          id="var-size"
-          label="Kích thước"
-          value={variantForm.size}
-          onChange={(e) =>
-            setVariantForm((prev) => ({ ...prev, size: e.target.value }))
-          }
-          placeholder="Nhập kích thước"
-        />
-        <Input
-          id="var-color"
-          label="Màu sắc"
-          value={variantForm.color}
-          onChange={(e) =>
-            setVariantForm((prev) => ({ ...prev, color: e.target.value }))
-          }
-          placeholder="Nhập màu sắc"
-        />
-        <Input
-          id="var-material"
-          label="Chất liệu"
-          value={variantForm.material}
-          onChange={(e) =>
-            setVariantForm((prev) => ({ ...prev, material: e.target.value }))
-          }
-          placeholder="Nhập chất liệu"
-        />
-        <Select
-          id="var-status"
-          label="Trạng thái"
-          required
-          options={[
-            { value: "ACTIVE", label: "Đang bán" },
-            { value: "INACTIVE", label: "Ngừng bán" },
-          ]}
-          value={variantForm.status}
-          onChange={(e) =>
-            setVariantForm((prev) => ({ ...prev, status: e.target.value }))
-          }
-        />
+          <Input
+            id="var-salePrice"
+            label="Giá bán"
+            required
+            type="text"
+            suffix="VND"
+            value={formatInputNumber(variantForm.salePrice)}
+            onChange={(e) => {
+              const rawVal = e.target.value
+                .replace(/\./g, "")
+                .replace(/[^0-9]/g, "");
+              setVariantForm((prev) => ({ ...prev, salePrice: rawVal }));
+              if (errors.salePrice)
+                setErrors((prev) => ({ ...prev, salePrice: "" }));
+            }}
+            error={errors.salePrice}
+            placeholder="0"
+          />
+
+          {/* Render động các input thuộc tính theo đúng option name của sản phẩm */}
+          {optionSlots.map(({ key, name }) => (
+            <Input
+              key={key}
+              id={`var-${key}`}
+              label={name!}
+              value={variantForm[key]}
+              onChange={(e) =>
+                setVariantForm((prev) => ({ ...prev, [key]: e.target.value }))
+              }
+              placeholder={`Nhập ${name}`}
+            />
+          ))}
+
+          <Select
+            id="var-status"
+            label="Trạng thái"
+            required
+            options={[
+              { value: "ACTIVE", label: "Đang bán" },
+              { value: "INACTIVE", label: "Ngừng bán" },
+            ]}
+            value={variantForm.status}
+            onChange={(e) =>
+              setVariantForm((prev) => ({ ...prev, status: e.target.value }))
+            }
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderEditForm = () => (
     <div className={styles.form}>
@@ -1303,15 +1237,15 @@ export function ProductList() {
                     override?.salePrice || form.salePrice;
                   const isEditing = editingVariantLabel === v.label;
 
-                  const sizeVal = v.values[attributes.findIndex(a => a.name === "Kích thước")] || "";
-                  const colorVal = v.values[attributes.findIndex(a => a.name === "Màu sắc")] || "";
-                  const materialVal = v.values[attributes.findIndex(a => a.name === "Chất liệu")] || "";
+                  const opt1Val = v.values[0] || "";
+                  const opt2Val = v.values[1] || "";
+                  const opt3Val = v.values[2] || "";
 
                   const existing = selectedProduct?.variants.find(
                     (vrt) =>
-                      (sizeVal ? vrt.size === sizeVal : !vrt.size) &&
-                      (colorVal ? vrt.color === colorVal : !vrt.color) &&
-                      (materialVal ? vrt.material === materialVal : !vrt.material)
+                      (opt1Val ? vrt.option1Value === opt1Val : !vrt.option1Value) &&
+                      (opt2Val ? vrt.option2Value === opt2Val : !vrt.option2Value) &&
+                      (opt3Val ? vrt.option3Value === opt3Val : !vrt.option3Value)
                   );
                   const stock = existing?.stock || 0;
                   return (
@@ -1968,31 +1902,56 @@ export function ProductList() {
         {selectedVariant && selectedProduct && (
           <>
             <div className={styles.detail}>
-              {Object.entries({
-                "Tên sản phẩm": selectedProduct.name,
-                "Mã SKU": selectedVariant.sku,
-                "Kích thước": selectedVariant.size || "—",
-                "Màu sắc": selectedVariant.color || "—",
-                "Chất liệu": selectedVariant.material || "—",
-                "Giá nhập": formatCurrency(selectedVariant.importPrice),
-                "Giá bán": formatCurrency(selectedVariant.salePrice),
-                "Tồn kho": selectedVariant.stock,
-                "Ghi chú": selectedVariant.note || "—",
-              }).map(([k, v]) => {
-                const isFullWidth = k === "Ghi chú" || k === "Tên sản phẩm";
-                return (
+              {(() => {
+                // Xây dựng danh sách thuộc tính động theo đúng option name của sản phẩm
+                const attrRows: { key: string; value: string | number; isFullWidth: boolean }[] = [
+                  { key: "Tên sản phẩm", value: selectedProduct.name, isFullWidth: true },
+                  { key: "Mã SKU", value: selectedVariant.sku, isFullWidth: false },
+                ];
+
+                // Chỉ thêm các thuộc tính mà sản phẩm thực sự có
+                if (selectedProduct.option1Name) {
+                  attrRows.push({
+                    key: selectedProduct.option1Name,
+                    value: selectedVariant.option1Value || "—",
+                    isFullWidth: false,
+                  });
+                }
+                if (selectedProduct.option2Name) {
+                  attrRows.push({
+                    key: selectedProduct.option2Name,
+                    value: selectedVariant.option2Value || "—",
+                    isFullWidth: false,
+                  });
+                }
+                if (selectedProduct.option3Name) {
+                  attrRows.push({
+                    key: selectedProduct.option3Name,
+                    value: selectedVariant.option3Value || "—",
+                    isFullWidth: false,
+                  });
+                }
+
+                attrRows.push(
+                  { key: "Giá nhập", value: formatCurrency(selectedVariant.importPrice), isFullWidth: false },
+                  { key: "Giá bán", value: formatCurrency(selectedVariant.salePrice), isFullWidth: false },
+                  { key: "Tồn kho", value: selectedVariant.stock, isFullWidth: false },
+                  { key: "Ghi chú", value: selectedVariant.note || "—", isFullWidth: true },
+                );
+
+                return attrRows.map(({ key, value, isFullWidth }) => (
                   <div
-                    key={k}
+                    key={key}
                     className={[
                       styles.detailRow,
                       isFullWidth ? styles.detailRowFullWidth : "",
                     ].join(" ")}
                   >
-                    <span className={styles.detailKey}>{k}</span>
-                    <span className={styles.detailVal}>{v}</span>
+                    <span className={styles.detailKey}>{key}</span>
+                    <span className={styles.detailVal}>{value}</span>
                   </div>
-                );
-              })}
+                ));
+              })()}
             </div>
             <div className={styles.modalActions}>
               <Button variant="secondary" onClick={closeVariantModals}>
