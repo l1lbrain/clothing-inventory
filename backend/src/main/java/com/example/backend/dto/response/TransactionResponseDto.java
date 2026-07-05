@@ -12,11 +12,13 @@ public class TransactionResponseDto {
     private Long variantId;
     private String sku;
     private Long purchaseOrderDetailId;
+    private String purchaseOrderCode;
     private String transactionType;
     private Integer quantity;
     private Integer quantityBefore;
     private Integer quantityAfter;
     private String note;
     private Long createdBy;
+    private String createdByName;
     private LocalDateTime createdAt;
 }

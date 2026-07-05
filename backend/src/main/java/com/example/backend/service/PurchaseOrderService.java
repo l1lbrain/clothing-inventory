@@ -44,7 +44,8 @@ public class PurchaseOrderService {
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
 
-    public PageResponseDto<PurchaseOrderResponseDto> getAllPurchaseOrders(String keyword, PurchaseOrderStatus status, Pageable pageable) {
+    public PageResponseDto<PurchaseOrderResponseDto> getAllPurchaseOrders(String keyword, PurchaseOrderStatus status,
+            Pageable pageable) {
         Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -53,7 +54,8 @@ public class PurchaseOrderService {
             if (StringUtils.hasText(keyword)) {
                 String keywordLower = "%" + keyword.toLowerCase() + "%";
                 Predicate codePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), keywordLower);
-                Predicate namePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("supplier").get("name")), keywordLower);
+                Predicate namePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("supplier").get("name")),
+                        keywordLower);
                 predicates.add(criteriaBuilder.or(codePredicate, namePredicate));
             }
 
@@ -69,7 +71,8 @@ public class PurchaseOrderService {
         return PageResponseDto.from(dtoPage);
     }
 
-    public PageResponseDto<PurchaseOrderResponseDto> getReceivedPurchaseOrders(String keyword, PurchaseOrderStatus status, Pageable pageable) {
+    public PageResponseDto<PurchaseOrderResponseDto> getReceivedPurchaseOrders(String keyword,
+            PurchaseOrderStatus status, Pageable pageable) {
         PurchaseOrderStatus finalStatus = (status == null) ? PurchaseOrderStatus.RECEIVED : status;
         return getAllPurchaseOrders(keyword, finalStatus, pageable);
     }
@@ -156,7 +159,7 @@ public class PurchaseOrderService {
                     .quantity(detail.getQuantity())
                     .quantityBefore(quantityBefore)
                     .quantityAfter(quantityAfter)
-                    .note("Receive purchase order " + order.getCode())
+                    .note("Nhập kho từ đơn đặt hàng " + order.getCode())
                     .createdBy(currentUser)
                     .build();
             transactions.add(transaction);
@@ -166,11 +169,10 @@ public class PurchaseOrderService {
     }
 
     private void validateStatusTransition(PurchaseOrderStatus current, PurchaseOrderStatus next) {
-        boolean valid =
-                (current == PurchaseOrderStatus.DRAFT    && next == PurchaseOrderStatus.PENDING)
-             || (current == PurchaseOrderStatus.PENDING  && next == PurchaseOrderStatus.RECEIVED)
-             || (current == PurchaseOrderStatus.DRAFT    && next == PurchaseOrderStatus.CANCELLED)
-             || (current == PurchaseOrderStatus.PENDING  && next == PurchaseOrderStatus.CANCELLED);
+        boolean valid = (current == PurchaseOrderStatus.DRAFT && next == PurchaseOrderStatus.PENDING)
+                || (current == PurchaseOrderStatus.PENDING && next == PurchaseOrderStatus.RECEIVED)
+                || (current == PurchaseOrderStatus.DRAFT && next == PurchaseOrderStatus.CANCELLED)
+                || (current == PurchaseOrderStatus.PENDING && next == PurchaseOrderStatus.CANCELLED);
 
         if (!valid) {
             throw new InvalidException(ErrorCode.INVALID_PURCHASE_ORDER_STATUS_TRANSITION);
@@ -178,7 +180,7 @@ public class PurchaseOrderService {
     }
 
     private List<PurchaseOrderDetail> buildDetails(List<PurchaseOrderDetailRequestDto> detailRequests,
-                                                   PurchaseOrder order) {
+            PurchaseOrder order) {
         List<PurchaseOrderDetail> details = new ArrayList<>();
         for (PurchaseOrderDetailRequestDto req : detailRequests) {
             ProductVariant variant = productVariantRepository.findById(req.getVariantId())
