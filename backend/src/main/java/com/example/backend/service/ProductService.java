@@ -376,9 +376,9 @@ public class ProductService {
                 .map(ProductVariant::getProduct)
                 .collect(Collectors.toSet());
         for (ProductVariant variant : variantsToUpdate) {
-            if (purchaseOrderDetailRepository.existsByVariantId(variant.getId())) {
-                throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
-            }
+//            if (purchaseOrderDetailRepository.existsByVariantId(variant.getId())) {
+//                throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
+//            }
             if (request.getPurchasePrice() != null)
                 variant.setPurchasePrice(request.getPurchasePrice());
             if (request.getSalePrice() != null)
