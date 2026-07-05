@@ -124,12 +124,16 @@ export async function getPurchaseOrdersPage(
   status?: string,
   sortBy?: string,
   sortDir?: "asc" | "desc",
+  fromDate?: string,
+  toDate?: string,
 ): Promise<PaginatedPurchaseOrders> {
   const params = new URLSearchParams({ page: String(page) });
   if (keyword) params.set("keyword", keyword);
   if (status) params.set("status", status.toUpperCase());
   if (sortBy) params.set("sortBy", sortBy);
   if (sortDir) params.set("sortDirection", sortDir);
+  if (fromDate) params.set("fromDate", fromDate);
+  if (toDate) params.set("toDate", toDate);
   const url = `/purchase-orders?${params.toString()}`;
 
   const response = await apiFetch<ApiResponse<PaginatedPurchaseOrdersResponse>>(url);
@@ -150,11 +154,15 @@ export async function getReceivedPurchaseOrdersPage(
   keyword?: string,
   sortBy?: string,
   sortDir?: "asc" | "desc",
+  fromDate?: string,
+  toDate?: string,
 ): Promise<PaginatedPurchaseOrders> {
   const params = new URLSearchParams({ page: String(page) });
   if (keyword) params.set("keyword", keyword);
   if (sortBy)  params.set("sortBy", sortBy);
   if (sortDir) params.set("sortDirection", sortDir);
+  if (fromDate) params.set("fromDate", fromDate);
+  if (toDate)   params.set("toDate", toDate);
   const url = `/purchase-orders/received?${params.toString()}`;
 
   const response = await apiFetch<ApiResponse<PaginatedPurchaseOrdersResponse>>(url);

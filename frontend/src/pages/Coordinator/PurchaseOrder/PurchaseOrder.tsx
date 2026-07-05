@@ -57,6 +57,75 @@ function nowLocalIsoString(): string {
   );
 }
 
+// --- Bộ lọc thời gian ---
+type DatePreset = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom";
+
+const DATE_PRESET_OPTIONS: { value: DatePreset | ""; label: string }[] = [
+  { value: "",           label: "Tất cả thời gian" },
+  { value: "thisWeek",   label: "Tuần này" },
+  { value: "lastWeek",   label: "Tuần trước" },
+  { value: "thisMonth",  label: "Tháng này" },
+  { value: "lastMonth",  label: "Tháng trước" },
+  { value: "custom",     label: "Tự chọn..." },
+];
+
+/**
+ * Định dạng một Date thành chuỗi "YYYY-MM-DD" (local, không có UTC offset).
+ */
+function toDateString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Tính khoảng ngày cho preset định sẵn.
+ * Tuần tính từ Thứ Hai (ISO 8601).
+ */
+function getDateRangeForPreset(preset: DatePreset): { from: string; to: string } {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=CN, 1=T2, ..., 6=T7
+  // Offset để về Thứ Hai (nếu CN thì lùi 6 ngày, còn lại lùi dayOfWeek - 1)
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  if (preset === "thisWeek") {
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { from: toDateString(monday), to: toDateString(sunday) };
+  }
+
+  if (preset === "lastWeek") {
+    const lastMonday = new Date(now);
+    lastMonday.setDate(now.getDate() + mondayOffset - 7);
+    const lastSunday = new Date(lastMonday);
+    lastSunday.setDate(lastMonday.getDate() + 6);
+    return { from: toDateString(lastMonday), to: toDateString(lastSunday) };
+  }
+
+  if (preset === "thisMonth") {
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: toDateString(first), to: toDateString(last) };
+  }
+
+  if (preset === "lastMonth") {
+    const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { from: toDateString(first), to: toDateString(last) };
+  }
+
+  // "custom" — caller tự xử lý
+  return { from: "", to: "" };
+}
+
+/**
+ * Chuyển chuỗi "YYYY-MM-DD" sang ISO LocalDateTime với giờ 00:00:00 hoặc 23:59:59.
+ */
+function toIsoLocal(dateStr: string, endOfDay: boolean): string {
+  return `${dateStr}T${endOfDay ? "23:59:59" : "00:00:00"}`;
+}
+
 
 interface SearchableProductDropdownProps {
   value: string;
@@ -209,6 +278,13 @@ export function PurchaseOrderPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("");
 
+  // Bộ lọc thời gian
+  const [datePreset, setDatePreset] = useState<DatePreset | "">("");
+  const [customFrom, setCustomFrom] = useState(""); // "YYYY-MM-DD"
+  const [customTo, setCustomTo]     = useState(""); // "YYYY-MM-DD"
+  const [dateFrom, setDateFrom]     = useState(""); // ISO LocalDateTime gửi lên BE
+  const [dateTo, setDateTo]         = useState(""); // ISO LocalDateTime gửi lên BE
+
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -332,6 +408,8 @@ export function PurchaseOrderPage() {
           statusFilter || undefined,
           sortBy,
           sortDir,
+          dateFrom || undefined,
+          dateTo || undefined,
         );
         setOrders(data.items);
         setTotalElements(data.totalElements);
@@ -346,7 +424,7 @@ export function PurchaseOrderPage() {
       }
     };
     fetchOrders();
-  }, [currentPage, refreshTrigger, debouncedQuery, sortBy, sortDir, showToast, statusFilter]);
+  }, [currentPage, refreshTrigger, debouncedQuery, sortBy, sortDir, showToast, statusFilter, dateFrom, dateTo]);
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
 
@@ -875,21 +953,96 @@ export function PurchaseOrderPage() {
           </Button>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", marginBottom: "16px", maxWidth: "240px" }}>
-          <Select
-            id="statusFilter"
-            options={[
-              { value: "", label: "Tất cả trạng thái" },
-              { value: "DRAFT", label: "Nháp" },
-              { value: "PENDING", label: "Chờ nhập hàng" },
-              { value: "RECEIVED", label: "Đã nhận hàng" },
-            ]}
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
+        <div className={styles.filterBar}>
+          {/* Lọc trạng thái */}
+          <div className={styles.filterGroup}>
+            <Select
+              id="statusFilter"
+              options={[
+                { value: "", label: "Tất cả trạng thái" },
+                { value: "DRAFT", label: "Nháp" },
+                { value: "PENDING", label: "Chờ nhập hàng" },
+                { value: "RECEIVED", label: "Đã nhận hàng" },
+              ]}
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+
+          {/* Lọc thời gian */}
+          <div className={styles.dateFilterGroup}>
+            <Select
+              id="datePresetFilter"
+              options={DATE_PRESET_OPTIONS}
+              value={datePreset}
+              onChange={(e) => {
+                const val = e.target.value as DatePreset | "";
+                setDatePreset(val);
+                setCurrentPage(1);
+                if (val === "" ) {
+                  // Xóa filter
+                  setDateFrom("");
+                  setDateTo("");
+                  setCustomFrom("");
+                  setCustomTo("");
+                } else if (val !== "custom") {
+                  // Preset cố định: tính range và áp dụng luôn
+                  const { from, to } = getDateRangeForPreset(val);
+                  setDateFrom(toIsoLocal(from, false));
+                  setDateTo(toIsoLocal(to, true));
+                  setCustomFrom("");
+                  setCustomTo("");
+                } else {
+                  // "custom": chờ người dùng nhập rồi bấm Áp dụng
+                  setDateFrom("");
+                  setDateTo("");
+                }
+              }}
+            />
+
+            {/* Custom date inputs — chỉ hiện khi chọn "Tự chọn" */}
+            {datePreset === "custom" && (
+              <div className={styles.customDateRow}>
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  aria-label="Từ ngày"
+                />
+                <span className={styles.dateSeparator}>→</span>
+                <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  aria-label="Đến ngày"
+                />
+                <button
+                  className={styles.applyDateBtn}
+                  onClick={() => {
+                    if (!customFrom || !customTo) {
+                      showToast("Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc", "warning");
+                      return;
+                    }
+                    if (customFrom > customTo) {
+                      showToast("Ngày bắt đầu không thể sau ngày kết thúc", "warning");
+                      return;
+                    }
+                    setDateFrom(toIsoLocal(customFrom, false));
+                    setDateTo(toIsoLocal(customTo, true));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <i className="fi fi-rr-check" />
+                  Áp dụng
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <Card>

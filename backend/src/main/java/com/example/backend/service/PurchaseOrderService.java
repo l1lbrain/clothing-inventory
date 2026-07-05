@@ -45,7 +45,7 @@ public class PurchaseOrderService {
     private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
 
     public PageResponseDto<PurchaseOrderResponseDto> getAllPurchaseOrders(String keyword, PurchaseOrderStatus status,
-            Pageable pageable) {
+            LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
         Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -63,6 +63,14 @@ public class PurchaseOrderService {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
             }
 
+            // Lọc theo khoảng thời gian orderDate
+            if (fromDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("orderDate"), fromDate));
+            }
+            if (toDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), toDate));
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -72,9 +80,36 @@ public class PurchaseOrderService {
     }
 
     public PageResponseDto<PurchaseOrderResponseDto> getReceivedPurchaseOrders(String keyword,
-            PurchaseOrderStatus status, Pageable pageable) {
+            PurchaseOrderStatus status, LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
         PurchaseOrderStatus finalStatus = (status == null) ? PurchaseOrderStatus.RECEIVED : status;
-        return getAllPurchaseOrders(keyword, finalStatus, pageable);
+
+        Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(criteriaBuilder.equal(root.get("status"), finalStatus));
+
+            if (StringUtils.hasText(keyword)) {
+                String keywordLower = "%" + keyword.toLowerCase() + "%";
+                Predicate codePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), keywordLower);
+                Predicate namePredicate = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("supplier").get("name")), keywordLower);
+                predicates.add(criteriaBuilder.or(codePredicate, namePredicate));
+            }
+
+            // Lọc theo khoảng thời gian receivedDate (ngày nhập hàng)
+            if (fromDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("receivedDate"), fromDate));
+            }
+            if (toDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("receivedDate"), toDate));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<PurchaseOrder> page = purchaseOrderRepository.findAll(spec, pageable);
+        Page<PurchaseOrderResponseDto> dtoPage = page.map(this::buildResponseWithDetails);
+        return PageResponseDto.from(dtoPage);
     }
 
     public PurchaseOrderResponseDto getPurchaseOrderById(Long id) {

@@ -16,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+
 import java.util.Set;
 
 @RestController
@@ -34,10 +37,14 @@ public class PurchaseOrderController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) PurchaseOrderStatus status,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
 
+        LocalDateTime from = parseDateTime(fromDate);
+        LocalDateTime to   = parseDateTime(toDate);
         Pageable pageable = PageRequest.of(page - 1, 10, buildSort(sortBy, sortDirection));
-        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(keyword, status, pageable));
+        return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(keyword, status, from, to, pageable));
     }
 
     @GetMapping("/received")
@@ -46,10 +53,14 @@ public class PurchaseOrderController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) PurchaseOrderStatus status,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
 
+        LocalDateTime from = parseDateTime(fromDate);
+        LocalDateTime to   = parseDateTime(toDate);
         Pageable pageable = PageRequest.of(page - 1, 10, buildSort(sortBy, sortDirection));
-        return ResponseEntity.ok(purchaseOrderService.getReceivedPurchaseOrders(keyword, status, pageable));
+        return ResponseEntity.ok(purchaseOrderService.getReceivedPurchaseOrders(keyword, status, from, to, pageable));
     }
 
     @GetMapping("/{id}")
@@ -81,5 +92,18 @@ public class PurchaseOrderController {
         String safeSortBy = ALLOWED_SORT_FIELDS.contains(sortBy) ? sortBy : "createdAt";
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         return Sort.by(direction, safeSortBy);
+    }
+
+    /**
+     * Parse chuỗi ISO LocalDateTime (vd: "2026-07-01T00:00:00") thành LocalDateTime.
+     * Trả về null nếu chuỗi trống hoặc không hợp lệ.
+     */
+    private LocalDateTime parseDateTime(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalDateTime.parse(raw);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 }

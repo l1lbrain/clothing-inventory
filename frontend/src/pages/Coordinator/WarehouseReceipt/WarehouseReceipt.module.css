@@ -669,3 +669,83 @@
   padding: 0 var(--space-4);
 }
 
+
+/* ===== Bộ lọc thời gian ===== */
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filterGroup {
+  min-width: 180px;
+}
+
+.dateFilterGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.dateFilterGroup > :first-child {
+  min-width: 160px;
+}
+
+.customDateRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dateInput {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  height: 38px;
+  line-height: 1;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.dateSeparator {
+  color: var(--color-subtext);
+  font-size: 0.85rem;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.applyDateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  height: 38px;
+  white-space: nowrap;
+  transition: background var(--transition), opacity var(--transition);
+}
+
+.applyDateBtn:hover {
+  opacity: 0.88;
+}
