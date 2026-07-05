@@ -9,7 +9,6 @@ import { Input } from "../../../components/Input/Input";
 import { Select } from "../../../components/Select/Select";
 import { Modal } from "../../../components/Modal/Modal";
 import { Pagination } from "../../../components/Pagination/Pagination";
-import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import styles from "./UserManagement.module.css";
 import type { TableColumn } from "../../../types/common.types";
 
@@ -69,7 +68,6 @@ export function UserManagement() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [createForm, setCreateForm] = useState({
     username: "",
@@ -239,29 +237,6 @@ export function UserManagement() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    const target = users.find((u) => u.uuid === deleteId);
-    if (!target) return;
-    if (target.roles.includes("admin")) {
-      showToast("Không thể xóa tài khoản Admin!", "error");
-      setDeleteId(null);
-      return;
-    }
-
-    try {
-      await updateUser(deleteId, {
-        status: "DELETED"
-      });
-      showToast("Đã xóa tài khoản!", "success");
-      setDeleteId(null);
-      triggerUsersRefresh();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Xóa tài khoản thất bại!";
-      showToast(translateUserError(msg), "error");
-    }
-  };
-
   const filteredUsers = useMemo(() => {
     return users.filter((u) => u.status !== "DELETED");
   }, [users]);
@@ -285,8 +260,6 @@ export function UserManagement() {
       return { ...prev, authorities: next };
     });
   };
-
-  const deleteTarget = users.find((u) => u.uuid === deleteId);
 
   const columns: TableColumn<UserResponse>[] = [
     { key: "username", label: buildUsersSortHeader("Tên đăng nhập", "username"), width: "150px" },
@@ -334,15 +307,6 @@ export function UserManagement() {
             onClick={() => handleEditClick(row)}
           >
             Sửa
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            icon="fi fi-rr-trash"
-            onClick={() => setDeleteId(row.uuid)}
-            disabled={row.roles.includes("admin")}
-          >
-            Xóa
           </Button>
         </div>
       ),
@@ -566,15 +530,6 @@ export function UserManagement() {
         </div>
       </Modal>
 
-      {/* ConfirmDialog xóa tài khoản */}
-      <ConfirmDialog
-        isOpen={!!deleteId}
-        title="Xóa tài khoản"
-        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteTarget?.username}"? Hành động này không thể hoàn tác.`}
-        confirmLabel="Xóa"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteId(null)}
-      />
     </section>
   );
 }

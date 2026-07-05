@@ -652,9 +652,9 @@ export function ProductList() {
       showToast("Cập nhật sản phẩm thành công!", "success");
       closeAllModals();
       triggerRefresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Lỗi khi cập nhật sản phẩm:", err);
-      const errorMsg = err?.message || "";
+      const errorMsg = err instanceof Error ? err.message : "";
       if (errorMsg === "Cannot update variant with existing transactions") {
         showToast("Không được phép sửa giá trị thuộc tính của phiên bản đã có giao dịch", "error");
       } else if (errorMsg === "Cannot delete variant with existing transactions") {
@@ -722,14 +722,13 @@ export function ProductList() {
       sku: variant.sku,
       importPrice: String(variant.importPrice),
       salePrice: String(variant.salePrice),
-      // Lưu giá trị thuộc tính theo index (option1/2/3Value), không phụ thuộc tên
       option1Value: variant.option1Value || "",
       option2Value: variant.option2Value || "",
       option3Value: variant.option3Value || "",
       stock: String(variant.stock),
       note: variant.note || "",
       adjustReason: "",
-      status: variant.status || "ACTIVE",
+      status: variant.status?.toUpperCase() === "ACTIVE" ? "ACTIVE" : "INACTIVE",
     });
     setErrors({});
     setSelectedVariant(variant);
@@ -795,9 +794,9 @@ export function ProductList() {
       showToast("Cập nhật phiên bản thành công!", "success");
       closeVariantModals();
       triggerRefresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Lỗi khi cập nhật phiên bản:", err);
-      const errorMsg = err?.message || "";
+      const errorMsg = err instanceof Error ? err.message : "";
       if (errorMsg === "Cannot update variant with existing transactions") {
         showToast("Không được phép sửa giá trị thuộc tính của phiên bản đã có giao dịch", "error");
       } else {
@@ -988,7 +987,7 @@ export function ProductList() {
       variantForm.option1Value === (selectedVariant.option1Value || "") &&
       variantForm.option2Value === (selectedVariant.option2Value || "") &&
       variantForm.option3Value === (selectedVariant.option3Value || "") &&
-      variantForm.status === (selectedVariant.status || "ACTIVE") &&
+      variantForm.status === (selectedVariant.status?.toUpperCase() === "ACTIVE" ? "ACTIVE" : "INACTIVE") &&
       Number(variantForm.stock) === selectedVariant.stock
     );
   };
