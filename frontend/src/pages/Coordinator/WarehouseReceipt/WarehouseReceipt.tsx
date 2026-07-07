@@ -22,6 +22,10 @@ import {
 } from "../../../services/payment";
 import { formatCurrency, formatDateTime, formatNumber } from "../../../utils/formatters";
 import type { TableColumn } from "../../../types/common.types";
+import {
+  SupplierSearchDropdown,
+  type SupplierOption,
+} from "../../../components/SupplierSearchDropdown/SupplierSearchDropdown";
 import styles from "./WarehouseReceipt.module.css";
 
 
@@ -67,12 +71,12 @@ function nowLocalIsoString(): string {
 type DatePreset = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom";
 
 const DATE_PRESET_OPTIONS: { value: DatePreset | ""; label: string }[] = [
-  { value: "",           label: "Tất cả thời gian" },
-  { value: "thisWeek",   label: "Tuần này" },
-  { value: "lastWeek",   label: "Tuần trước" },
-  { value: "thisMonth",  label: "Tháng này" },
-  { value: "lastMonth",  label: "Tháng trước" },
-  { value: "custom",     label: "Tự chọn..." },
+  { value: "", label: "Tất cả thời gian" },
+  { value: "thisWeek", label: "Tuần này" },
+  { value: "lastWeek", label: "Tuần trước" },
+  { value: "thisMonth", label: "Tháng này" },
+  { value: "lastMonth", label: "Tháng trước" },
+  { value: "custom", label: "Tự chọn..." },
 ];
 
 /** Định dạng Date thành "YYYY-MM-DD" (local, không có UTC offset). */
@@ -106,12 +110,12 @@ function getDateRangeForPreset(preset: DatePreset): { from: string; to: string }
   }
   if (preset === "thisMonth") {
     const first = new Date(now.getFullYear(), now.getMonth(), 1);
-    const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return { from: toDateString(first), to: toDateString(last) };
   }
   if (preset === "lastMonth") {
     const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
     return { from: toDateString(first), to: toDateString(last) };
   }
   return { from: "", to: "" };
@@ -770,13 +774,14 @@ export function WarehouseReceiptPage() {
   const [sortBy, setSortBy] = useState<"receivedDate" | "totalAmount" | "totalQuantity">("receivedDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState<SupplierOption | null>(null);
 
   // Bộ lọc thời gian
   const [datePreset, setDatePreset] = useState<DatePreset | "">("");
   const [customFrom, setCustomFrom] = useState(""); // "YYYY-MM-DD"
-  const [customTo, setCustomTo]     = useState(""); // "YYYY-MM-DD"
-  const [dateFrom, setDateFrom]     = useState(""); // ISO LocalDateTime gửi lên BE
-  const [dateTo, setDateTo]         = useState(""); // ISO LocalDateTime gửi lên BE
+  const [customTo, setCustomTo] = useState(""); // "YYYY-MM-DD"
+  const [dateFrom, setDateFrom] = useState(""); // ISO LocalDateTime gửi lên BE
+  const [dateTo, setDateTo] = useState(""); // ISO LocalDateTime gửi lên BE
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -845,6 +850,7 @@ export function WarehouseReceiptPage() {
         sortDir,
         dateFrom || undefined,
         dateTo || undefined,
+        supplierFilter ? Number(supplierFilter.id) : undefined,
       );
       setReceipts(data.items);
       setTotalElements(data.totalElements);
@@ -857,7 +863,7 @@ export function WarehouseReceiptPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedQuery, sortBy, sortDir, dateFrom, dateTo, showToast]);
+  }, [currentPage, debouncedQuery, sortBy, sortDir, dateFrom, dateTo, showToast, supplierFilter]);
 
   useEffect(() => {
     let active = true;
@@ -998,6 +1004,18 @@ export function WarehouseReceiptPage() {
             />
           </div>
 
+          {/* Lọc theo nhà cung cấp */}
+          <div className={styles.filterGroup}>
+            <SupplierSearchDropdown
+              value={supplierFilter}
+              onSelect={(s) => {
+                setSupplierFilter(s);
+                setCurrentPage(1);
+              }}
+              placeholder="Tất cả nhà cung cấp"
+            />
+          </div>
+
           {/* Lọc thời gian theo receivedDate */}
           <div className={styles.dateFilterGroup}>
             <Select
@@ -1073,7 +1091,7 @@ export function WarehouseReceiptPage() {
             title="Danh sách phiếu nhập kho"
             actions={
               <SearchBox
-                placeholder="Tìm mã phiếu, NCC..."
+                placeholder="Tìm mã phiếu..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
