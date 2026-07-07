@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
     boolean existsByCode(String code);
 
+    boolean existsByCategoryId(Long categoryId);
+
     @Query("SELECT COUNT(p) FROM Product p")
     Long sumAllProduct();
 }

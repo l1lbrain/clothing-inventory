@@ -412,4 +412,58 @@
   font-weight: 600;
 }
 
+/* ── Category label row with "+" button ── */
+.categoryField {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 
+.categoryLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.label {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.addCategoryBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-subtext);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background var(--transition), color var(--transition),
+    border-color var(--transition), transform var(--transition);
+  flex-shrink: 0;
+}
+
+.addCategoryBtn i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.addCategoryBtn:hover {
+  background: var(--color-info-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  transform: scale(1.1);
+}

@@ -21,6 +21,7 @@ import {
 } from "../../../services/product";
 import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
+import { CategoryManagerModal } from "../../../components/CategoryManagerModal/CategoryManagerModal";
 import styles from "./CreateProduct.module.css";
 
 const INITIAL: ProductFormData = {
@@ -46,6 +47,7 @@ export function CreateProduct() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<CategoryResponseDto[]>([]);
   const { showToast } = useToast();
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
@@ -492,15 +494,31 @@ export function CreateProduct() {
                     error={errors.brand}
                     placeholder="VD: SapoBrand"
                   />
-                  <Select
-                    id="category"
-                    label="Danh mục"
-                    required
-                    options={categoryOptions}
-                    value={form.category}
-                    onChange={handleChange("category")}
-                    error={errors.category}
-                  />
+                  <div className={styles.categoryField}>
+                    <div className={styles.categoryLabel}>
+                      <label htmlFor="category" className={styles.label}>
+                        Danh mục <span className={styles.required}>*</span>
+                      </label>
+                      <button
+                        type="button"
+                        className={styles.addCategoryBtn}
+                        onClick={() => setShowCategoryModal(true)}
+                        title="Quản lý danh mục"
+                        aria-label="Quản lý danh mục"
+                      >
+                        <i className="fi fi-rr-add" />
+                      </button>
+                    </div>
+                    <Select
+                      id="category"
+                      label=""
+                      required
+                      options={categoryOptions}
+                      value={form.category}
+                      onChange={handleChange("category")}
+                      error={errors.category}
+                    />
+                  </div>
                   <Input
                     id="unit"
                     label="Đơn vị tính"
@@ -867,6 +885,22 @@ export function CreateProduct() {
         cancelLabel="Ở lại"
         onConfirm={() => blocker.proceed?.()}
         onCancel={() => blocker.reset?.()}
+      />
+
+      <CategoryManagerModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        onCategoriesChanged={(updated) => {
+          setCategories(updated);
+          // Nếu danh mục đang chọn bị xóa → reset về danh mục đầu tiên
+          const stillExists = updated.some((c) => String(c.id) === form.category);
+          if (!stillExists) {
+            setForm((prev) => ({
+              ...prev,
+              category: updated.length > 0 ? String(updated[0].id) : "",
+            }));
+          }
+        }}
       />
     </section>
   );

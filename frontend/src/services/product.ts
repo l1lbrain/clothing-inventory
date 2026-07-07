@@ -90,9 +90,9 @@ export function mapBackendVariantToFrontend(
   // Ví dụ: { "Màu sắc": "Đỏ", "Kích thước": "M" }
   // Tra cứu giá trị theo đúng tên thuộc tính người dùng đã định nghĩa
   const attrs = v.attributes ?? {};
-  const option1Value = (option1Name ? (attrs[option1Name] ?? null) : null);
-  const option2Value = (option2Name ? (attrs[option2Name] ?? null) : null);
-  const option3Value = (option3Name ? (attrs[option3Name] ?? null) : null);
+  const option1Value = option1Name ? (attrs[option1Name] ?? null) : null;
+  const option2Value = option2Name ? (attrs[option2Name] ?? null) : null;
+  const option3Value = option3Name ? (attrs[option3Name] ?? null) : null;
 
   return {
     id: String(v.id),
@@ -114,7 +114,14 @@ export function mapBackendProductToFrontend(p: ProductResponseDto): Product {
     p.categoryName,
   );
   const variants = p.variants
-    ? p.variants.map((v) => mapBackendVariantToFrontend(v, p.option1Name, p.option2Name, p.option3Name))
+    ? p.variants.map((v) =>
+        mapBackendVariantToFrontend(
+          v,
+          p.option1Name,
+          p.option2Name,
+          p.option3Name,
+        ),
+      )
     : [];
 
   // Tổng tồn kho
@@ -183,8 +190,12 @@ export async function getProductsPage(
   };
 }
 
-export async function getVariantById(variantId: string): Promise<ProductVariantDetailResponseDto> {
-  const response = await apiFetch<ApiResponse<ProductVariantDetailResponseDto>>(`/products/variants/${variantId}`);
+export async function getVariantById(
+  variantId: string,
+): Promise<ProductVariantDetailResponseDto> {
+  const response = await apiFetch<ApiResponse<ProductVariantDetailResponseDto>>(
+    `/products/variants/${variantId}`,
+  );
   return response.data;
 }
 
@@ -210,13 +221,15 @@ export async function getLowStockVariantsPage(
   if (sortDir) params.set("sortDirection", sortDir);
 
   const url = `/products/variants/low-stock?${params.toString()}`;
-  const response = await apiFetch<ApiResponse<{
-    items: ProductVariantDetailResponseDto[];
-    page: number;
-    size: number;
-    totalElements: number;
-    totalPages: number;
-  }>>(url);
+  const response = await apiFetch<
+    ApiResponse<{
+      items: ProductVariantDetailResponseDto[];
+      page: number;
+      size: number;
+      totalElements: number;
+      totalPages: number;
+    }>
+  >(url);
   const data = response.data;
 
   return {
@@ -274,6 +287,39 @@ export async function getCategories(): Promise<CategoryResponseDto[]> {
   return response.data;
 }
 
+export async function createCategory(name: string): Promise<CategoryResponseDto> {
+  // Backend yêu cầu cả code + name, tự sinh code theo format CAT-YYMMDD-XXXX
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const code = `CAT-${yy}${mm}${dd}-${rand}`;
+
+  const response = await apiFetch<ApiResponse<CategoryResponseDto>>("/categories", {
+    method: "POST",
+    body: JSON.stringify({ code, name }),
+  });
+  return response.data;
+}
+
+export async function updateCategory(
+  id: number,
+  name: string,
+  existingCode: string
+): Promise<CategoryResponseDto> {
+  // Backend yêu cầu cả code + name khi update, giữ nguyên code cũ
+  const response = await apiFetch<ApiResponse<CategoryResponseDto>>(`/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ code: existingCode, name }),
+  });
+  return response.data;
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  await apiFetch<void>(`/categories/${id}`, { method: "DELETE" });
+}
+
 // Xóa sản phẩm theo id
 export async function deleteProduct(id: string): Promise<void> {
   await apiFetch<void>(`/products/${id}`, { method: "DELETE" });
@@ -319,14 +365,14 @@ export interface ProductUpdatePayload {
 // Cập nhật sản phẩm dùng PUT
 export async function updateProduct(
   id: string,
-  payload: ProductUpdatePayload
+  payload: ProductUpdatePayload,
 ): Promise<ProductResponseDto> {
   const response = await apiFetch<ApiResponse<ProductResponseDto>>(
     `/products/${id}`,
     {
       method: "PUT",
       body: JSON.stringify(payload),
-    }
+    },
   );
   return response.data;
 }
@@ -334,14 +380,14 @@ export async function updateProduct(
 // Cập nhật sản phẩm dùng PATCH
 export async function patchProduct(
   id: string,
-  payload: Partial<ProductUpdatePayload>
+  payload: Partial<ProductUpdatePayload>,
 ): Promise<ProductResponseDto> {
   const response = await apiFetch<ApiResponse<ProductResponseDto>>(
     `/products/${id}`,
     {
       method: "PATCH",
       body: JSON.stringify(payload),
-    }
+    },
   );
   return response.data;
 }
@@ -355,7 +401,7 @@ export interface BulkUpdatePricePayload {
 
 // Cập nhật giá hàng loạt cho các phiên bản
 export async function bulkUpdateVariantPrices(
-  payload: BulkUpdatePricePayload
+  payload: BulkUpdatePricePayload,
 ): Promise<void> {
   await apiFetch<void>("/products/variants/bulk-update-price", {
     method: "PUT",
@@ -376,15 +422,14 @@ export interface VariantUpdatePayload {
 
 export async function updateVariant(
   id: string,
-  payload: VariantUpdatePayload
+  payload: VariantUpdatePayload,
 ): Promise<ProductResponseDto> {
   const response = await apiFetch<ApiResponse<ProductResponseDto>>(
     `/products/variants/${id}`,
     {
       method: "PUT",
       body: JSON.stringify(payload),
-    }
+    },
   );
   return response.data;
 }
-

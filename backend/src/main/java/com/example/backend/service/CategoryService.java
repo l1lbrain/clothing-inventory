@@ -8,6 +8,7 @@ import com.example.backend.mapper.CategoryMapper;
 import com.example.backend.model.Category;
 import com.example.backend.model.enums.Status;
 import com.example.backend.repository.CategoryRepository;
+import com.example.backend.repository.ProductRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final ProductRepository productRepository;
 
     public List<CategoryResponseDto> getAllCategories() {
         return categoryRepository.findAll().stream()
@@ -61,6 +63,12 @@ public class CategoryService {
     @Transactional
     public void deleteCategory(Long id) {
         Category category = findCategoryById(id);
+
+        // Kiểm tra có sản phẩm nào đang thuộc danh mục này không
+        if (productRepository.existsByCategoryId(id)) {
+            throw new InvalidException(ErrorCode.CANNOT_DELETE_CATEGORY_HAS_PRODUCTS);
+        }
+
         categoryRepository.delete(category);
     }
 

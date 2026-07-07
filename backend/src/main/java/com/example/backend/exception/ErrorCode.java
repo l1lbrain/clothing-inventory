@@ -38,6 +38,7 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_EXCEEDS_REMAINING(400, "Payment amount exceeds remaining amount"),
 
     CANNOT_DELETE_SUPPLIER_HAS_PURCHASE_ORDER(409, "Cannot delete supplier with existing purchase orders"),
+    CANNOT_DELETE_CATEGORY_HAS_PRODUCTS(409, "Cannot delete category because it has existing products"),
     CANNOT_DELETE_PRODUCT_HAS_TRANSACTIONS(409, "Cannot delete product because its variants have existing transactions"),
     CANNOT_DELETE_VARIANT_HAS_TRANSACTIONS(409, "Cannot delete variant with existing transactions"),
     CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS(409, "Cannot update variant with existing transactions");
