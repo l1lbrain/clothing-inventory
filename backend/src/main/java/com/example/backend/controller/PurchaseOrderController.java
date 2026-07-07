@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,7 @@ public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping
     public ResponseEntity<PageResponseDto<PurchaseOrderResponseDto>> getAllPurchaseOrders(
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page number must be greater than or equal to 1") int page,
@@ -47,6 +49,7 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getAllPurchaseOrders(keyword, status, from, to, pageable));
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping("/received")
     public ResponseEntity<PageResponseDto<PurchaseOrderResponseDto>> getReceivedPurchaseOrders(
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page number must be greater than or equal to 1") int page,
@@ -63,17 +66,20 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getReceivedPurchaseOrders(keyword, status, from, to, pageable));
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping("/{id}")
     public ResponseEntity<PurchaseOrderResponseDto> getPurchaseOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(purchaseOrderService.getPurchaseOrderById(id));
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @PostMapping
     public ResponseEntity<PurchaseOrderResponseDto> createPurchaseOrder(
             @Valid @RequestBody PurchaseOrderRequestDto request) {
         return ResponseEntity.ok(purchaseOrderService.createPurchaseOrder(request));
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @PutMapping("/{id}")
     public ResponseEntity<PurchaseOrderResponseDto> updatePurchaseOrder(
             @PathVariable Long id,
@@ -81,6 +87,7 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.updatePurchaseOrder(id, request));
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<PurchaseOrderResponseDto> updateStatus(
             @PathVariable Long id,
@@ -94,10 +101,6 @@ public class PurchaseOrderController {
         return Sort.by(direction, safeSortBy);
     }
 
-    /**
-     * Parse chuỗi ISO LocalDateTime (vd: "2026-07-01T00:00:00") thành LocalDateTime.
-     * Trả về null nếu chuỗi trống hoặc không hợp lệ.
-     */
     private LocalDateTime parseDateTime(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {

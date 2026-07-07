@@ -18,4 +18,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT pv FROM ProductVariant pv WHERE pv.id = :id")
     Optional<ProductVariant> findByIdForUpdate(@Param("id") Long id);
+
+    @Query("SELECT COALESCE(SUM(pv.quantityOnHand), 0) FROM ProductVariant pv")
+    Long sumAllQuantityOnHand();
 }

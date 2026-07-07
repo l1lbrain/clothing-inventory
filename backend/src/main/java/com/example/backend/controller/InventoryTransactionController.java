@@ -37,7 +37,7 @@ public class InventoryTransactionController {
         return ResponseEntity.ok(transactionService.searchTransactions(keyword, pageable));
     }
 
-    @PreAuthorize("hasAuthority('coordinator')")
+    @PreAuthorize("hasAuthority('warehouse-staff')")
     @GetMapping("/variant/{variantId}")
     public ResponseEntity<PageResponseDto<TransactionResponseDto>> getHistoryByVariantId(
             @PathVariable Long variantId,

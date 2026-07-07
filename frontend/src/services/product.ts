@@ -183,6 +183,46 @@ export async function getProductsPage(
   };
 }
 
+export interface PaginatedLowStock {
+  items: ProductVariantDetailResponseDto[];
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export async function getLowStockVariantsPage(
+  page: number,
+  keyword?: string,
+  status?: string,
+  sortBy?: string,
+  sortDir?: "asc" | "desc",
+): Promise<PaginatedLowStock> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (keyword) params.set("keyword", keyword);
+  if (status) params.set("status", status.toUpperCase());
+  if (sortBy) params.set("sortBy", sortBy);
+  if (sortDir) params.set("sortDirection", sortDir);
+
+  const url = `/products/variants/low-stock?${params.toString()}`;
+  const response = await apiFetch<ApiResponse<{
+    items: ProductVariantDetailResponseDto[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  }>>(url);
+  const data = response.data;
+
+  return {
+    items: data.items ?? [],
+    page: data.page,
+    pageSize: data.size,
+    totalElements: data.totalElements,
+    totalPages: data.totalPages,
+  };
+}
+
 export interface VariantCreateRequestDto {
   option1Value: string | null;
   option2Value: string | null;

@@ -1,10 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.ProductCreateRequestDto;
-import com.example.backend.dto.request.ProductUpdateRequestDto;
-import com.example.backend.dto.request.VariantBulkPriceUpdateRequestDto;
-import com.example.backend.dto.request.VariantDeleteRequestDto;
-import com.example.backend.dto.request.VariantUpdateRequestDto;
+import com.example.backend.dto.request.*;
 import com.example.backend.dto.response.PageResponseDto;
 import com.example.backend.dto.response.ProductResponseDto;
 import com.example.backend.dto.response.ProductVariantDetailResponseDto;
@@ -35,6 +31,7 @@ public class ProductController {
 
     private final ProductService productService;
 
+    @PreAuthorize("hasAuthority('warehouse-staff')")
     @GetMapping
     public ResponseEntity<PageResponseDto<ProductResponseDto>> getAllProducts(
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page number must be greater than or equal to 1") int page,
@@ -47,6 +44,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts(keyword, status, pageable));
     }
 
+    @PreAuthorize("hasAuthority('coordinator')")
     @GetMapping("/variants")
     public ResponseEntity<PageResponseDto<ProductVariantDetailResponseDto>> getAllVariants(
             @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page number must be greater than or equal to 1") int page,
@@ -57,6 +55,19 @@ public class ProductController {
 
         Pageable pageable = PageRequest.of(page - 1, 10, buildSort(sortBy, sortDirection));
         return ResponseEntity.ok(productService.getAllVariants(keyword, status, pageable));
+    }
+
+    @PreAuthorize("hasAuthority('admin')")
+    @GetMapping("/variants/low-stock")
+    public ResponseEntity<PageResponseDto<ProductVariantDetailResponseDto>> getLowStockVariants(
+            @RequestParam(defaultValue = "1") @Min(value = 1, message = "Page number must be greater than or equal to 1") int page,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Status status,
+            @RequestParam(defaultValue = "quantityOnHand") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDirection) {
+
+        Pageable pageable = PageRequest.of(page - 1, 10, buildSort(sortBy, sortDirection));
+        return ResponseEntity.ok(productService.getLowStockVariants(keyword, status, pageable));
     }
 
     @PreAuthorize("hasAuthority('warehouse-staff')")

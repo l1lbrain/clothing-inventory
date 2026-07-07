@@ -11,25 +11,16 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.exception.InvalidException;
 import com.example.backend.mapper.ProductMapper;
 import com.example.backend.mapper.ProductVariantMapper;
-import com.example.backend.model.Category;
-import com.example.backend.model.InventoryTransaction;
-import com.example.backend.model.Product;
-import com.example.backend.model.ProductVariant;
-import com.example.backend.model.User;
+import com.example.backend.model.*;
 import com.example.backend.model.enums.Status;
-import com.example.backend.repository.CategoryRepository;
-import com.example.backend.repository.InventoryTransactionRepository;
-import com.example.backend.repository.ProductRepository;
-import com.example.backend.repository.ProductVariantRepository;
-import com.example.backend.repository.PurchaseOrderDetailRepository;
-import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.*;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -89,6 +80,32 @@ public class ProductService {
                 Predicate skuPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("sku")), keywordLower);
                 Predicate productNamePredicate = criteriaBuilder.like(criteriaBuilder.lower(product.get("name")),
                         keywordLower);
+                predicates.add(criteriaBuilder.or(skuPredicate, productNamePredicate));
+            }
+
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<ProductVariant> variantPage = variantRepository.findAll(spec, pageable);
+        return PageResponseDto.from(variantPage.map(variantMapper::toDetailResponse));
+    }
+
+    public PageResponseDto<ProductVariantDetailResponseDto> getLowStockVariants(String keyword, Status status, Pageable pageable) {
+        Specification<ProductVariant> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(criteriaBuilder.lessThan(root.get("quantityOnHand"), 20));
+            predicates.add(criteriaBuilder.notEqual(root.get("status"), Status.DELETED));
+
+            if (StringUtils.hasText(keyword)) {
+                String keywordLower = "%" + keyword.toLowerCase() + "%";
+                Join<ProductVariant, Product> product = root.join("product");
+                Predicate skuPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("sku")), keywordLower);
+                Predicate productNamePredicate = criteriaBuilder.like(criteriaBuilder.lower(product.get("name")), keywordLower);
                 predicates.add(criteriaBuilder.or(skuPredicate, productNamePredicate));
             }
 
@@ -268,7 +285,6 @@ public class ProductService {
         ProductVariant variant = variantRepository.findById(variantId)
                 .orElseThrow(() -> new InvalidException(ErrorCode.VARIANT_NOT_FOUND));
 
-        // Cập nhật các trường cơ bản
         if (request.getPurchasePrice() != null)
             variant.setPurchasePrice(request.getPurchasePrice());
         if (request.getSalePrice() != null)
@@ -285,7 +301,6 @@ public class ProductService {
                 throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
             }
         } else {
-            // Chỉ cho phép sửa option values khi chưa có giao dịch
             variant.setOption1Value(request.getOption1Value());
             variant.setOption2Value(request.getOption2Value());
             variant.setOption3Value(request.getOption3Value());
@@ -303,7 +318,6 @@ public class ProductService {
             }
         }
 
-        // Xử lý thay đổi số lượng tồn kho
         if (request.getQuantityOnHand() != null) {
             Integer quantityBefore = variant.getQuantityOnHand();
             Integer quantityAfter = request.getQuantityOnHand();
@@ -326,7 +340,6 @@ public class ProductService {
             }
         }
 
-        // Đồng bộ trạng thái sản phẩm cha
         syncParentStatus(variant.getProduct());
 
         return productMapper.toResponse(variant.getProduct());
@@ -376,9 +389,9 @@ public class ProductService {
                 .map(ProductVariant::getProduct)
                 .collect(Collectors.toSet());
         for (ProductVariant variant : variantsToUpdate) {
-//            if (purchaseOrderDetailRepository.existsByVariantId(variant.getId())) {
-//                throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
-//            }
+            if (purchaseOrderDetailRepository.existsByVariantId(variant.getId())) {
+                throw new InvalidException(ErrorCode.CANNOT_UPDATE_VARIANT_HAS_TRANSACTIONS);
+            }
             if (request.getPurchasePrice() != null)
                 variant.setPurchasePrice(request.getPurchasePrice());
             if (request.getSalePrice() != null)

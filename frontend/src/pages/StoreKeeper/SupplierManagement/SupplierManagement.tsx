@@ -7,7 +7,6 @@ import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import { Input } from "../../../components/Input/Input";
 import { Select } from "../../../components/Select/Select";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
-import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import { Pagination } from "../../../components/Pagination/Pagination";
 import type { TableColumn } from "../../../types/common.types";
 import {
@@ -20,7 +19,6 @@ import { useToast } from "../../../components/Toast/ToastContext";
 import {
   getSuppliersPage,
   createSupplier,
-  deleteSupplier,
   updateSupplier,
   patchSupplier,
 } from "../../../services/supplier";
@@ -100,7 +98,6 @@ export function SupplierManagement() {
   );
   const [form, setForm] = useState<SupplierFormData>(INITIAL_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -370,22 +367,6 @@ export function SupplierManagement() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    const target = suppliers.find((s) => s.id === deleteId);
-    if (!target) return;
-
-    try {
-      await deleteSupplier(target.code);
-      showToast("Xóa nhà cung cấp thành công!", "success");
-      setDeleteId(null);
-      triggerRefresh();
-    } catch (err) {
-      console.error("Failed to delete supplier:", err);
-      showToast("Không thể xóa nhà cung cấp. Vui lòng thử lại!", "error");
-      setDeleteId(null);
-    }
-  };
 
   const columns: TableColumn<Supplier>[] = [
     { key: "code", label: "Mã NCC", width: "165px" },
@@ -424,20 +405,11 @@ export function SupplierManagement() {
           >
             Xem
           </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            icon="fi fi-rr-trash"
-            onClick={() => setDeleteId(row.id)}
-          >
-            Xóa
-          </Button>
         </div>
       ),
     },
   ];
 
-  const deleteTarget = suppliers.find((s) => s.id === deleteId);
 
   const renderForm = () => (
     <div className={styles.form}>
@@ -710,14 +682,6 @@ export function SupplierManagement() {
         )}
       </Modal>
 
-      <ConfirmDialog
-        isOpen={!!deleteId}
-        title="Xóa nhà cung cấp"
-        message={`Bạn có chắc muốn xóa "${deleteTarget?.companyName}"? Hành động này không thể hoàn tác.`}
-        confirmLabel="Xóa"
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteId(null)}
-      />
     </section>
   );
 }

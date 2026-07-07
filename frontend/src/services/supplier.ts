@@ -103,12 +103,6 @@ export async function createSupplier(
   return mapBackendSupplierToFrontend(response.data);
 }
 
-export async function deleteSupplier(code: string): Promise<void> {
-  await apiFetch<void>(`/suppliers/${code}`, {
-    method: "DELETE",
-  });
-}
-
 export async function updateSupplier(
   code: string,
   form: SupplierFormData,
