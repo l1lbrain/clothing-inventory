@@ -45,11 +45,12 @@ public class PurchaseOrderService {
     private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
 
     public PageResponseDto<PurchaseOrderResponseDto> getAllPurchaseOrders(String keyword, PurchaseOrderStatus status,
-            LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
+            LocalDateTime fromDate, LocalDateTime toDate, Long supplierId, Pageable pageable) {
         Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-//            predicates.add(criteriaBuilder.notEqual(root.get("status"), PurchaseOrderStatus.CANCELLED));
+            // predicates.add(criteriaBuilder.notEqual(root.get("status"),
+            // PurchaseOrderStatus.CANCELLED));
 
             if (StringUtils.hasText(keyword)) {
                 String keywordLower = "%" + keyword.toLowerCase() + "%";
@@ -71,6 +72,11 @@ public class PurchaseOrderService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), toDate));
             }
 
+            // Lọc theo nhà cung cấp
+            if (supplierId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("supplier").get("id"), supplierId));
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -80,7 +86,8 @@ public class PurchaseOrderService {
     }
 
     public PageResponseDto<PurchaseOrderResponseDto> getReceivedPurchaseOrders(String keyword,
-            PurchaseOrderStatus status, LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
+            PurchaseOrderStatus status, LocalDateTime fromDate, LocalDateTime toDate, Long supplierId,
+            Pageable pageable) {
         PurchaseOrderStatus finalStatus = (status == null) ? PurchaseOrderStatus.RECEIVED : status;
 
         Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
@@ -102,6 +109,11 @@ public class PurchaseOrderService {
             }
             if (toDate != null) {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("receivedDate"), toDate));
+            }
+
+            // Lọc theo nhà cung cấp
+            if (supplierId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("supplier").get("id"), supplierId));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

@@ -12,7 +12,7 @@ import { useToast } from "../../../components/Toast/ToastContext";
 import { SupplierDetailModal } from "../../../components/SupplierDetailModal/SupplierDetailModal";
 import { VariantDetailModal } from "../../../components/VariantDetailModal/VariantDetailModal";
 import { UserDetailModal } from "../../../components/UserDetailModal/UserDetailModal";
-import { getSuppliersPage } from "../../../services/supplier";
+
 import { getProductsPage } from "../../../services/product";
 import {
   getPurchaseOrdersPage,
@@ -24,7 +24,6 @@ import type { PurchaseOrderCreateRequestDto } from "../../../services/purchaseOr
 import { formatCurrency, formatDateTime } from "../../../utils/formatters";
 import type { TableColumn } from "../../../types/common.types";
 import type { PurchaseOrder } from "../../../types/purchaseOrder.types";
-import type { Supplier } from "../../../types/supplier.types";
 import type { Product } from "../../../types/product.types";
 import styles from "./PurchaseOrder.module.css";
 
@@ -64,12 +63,12 @@ function nowLocalIsoString(): string {
 type DatePreset = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom";
 
 const DATE_PRESET_OPTIONS: { value: DatePreset | ""; label: string }[] = [
-  { value: "",           label: "Tất cả thời gian" },
-  { value: "thisWeek",   label: "Tuần này" },
-  { value: "lastWeek",   label: "Tuần trước" },
-  { value: "thisMonth",  label: "Tháng này" },
-  { value: "lastMonth",  label: "Tháng trước" },
-  { value: "custom",     label: "Tự chọn..." },
+  { value: "", label: "Tất cả thời gian" },
+  { value: "thisWeek", label: "Tuần này" },
+  { value: "lastWeek", label: "Tuần trước" },
+  { value: "thisMonth", label: "Tháng này" },
+  { value: "lastMonth", label: "Tháng trước" },
+  { value: "custom", label: "Tự chọn..." },
 ];
 
 /**
@@ -108,13 +107,13 @@ function getDateRangeForPreset(preset: DatePreset): { from: string; to: string }
 
   if (preset === "thisMonth") {
     const first = new Date(now.getFullYear(), now.getMonth(), 1);
-    const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return { from: toDateString(first), to: toDateString(last) };
   }
 
   if (preset === "lastMonth") {
     const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
     return { from: toDateString(first), to: toDateString(last) };
   }
 
@@ -128,6 +127,13 @@ function getDateRangeForPreset(preset: DatePreset): { from: string; to: string }
 function toIsoLocal(dateStr: string, endOfDay: boolean): string {
   return `${dateStr}T${endOfDay ? "23:59:59" : "00:00:00"}`;
 }
+
+
+import {
+  SupplierSearchDropdown,
+  type SupplierOption,
+} from "../../../components/SupplierSearchDropdown/SupplierSearchDropdown";
+
 
 
 interface SearchableProductDropdownProps {
@@ -267,7 +273,6 @@ const EMPTY_LINE: LineItem = {
 export function PurchaseOrderPage() {
   const { showToast } = useToast();
 
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
@@ -280,13 +285,14 @@ export function PurchaseOrderPage() {
   const [sortBy, setSortBy] = useState<"orderDate" | "totalAmount" | "totalQuantity">("orderDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState<SupplierOption | null>(null);
 
   // Bộ lọc thời gian
   const [datePreset, setDatePreset] = useState<DatePreset | "">("");
   const [customFrom, setCustomFrom] = useState(""); // "YYYY-MM-DD"
-  const [customTo, setCustomTo]     = useState(""); // "YYYY-MM-DD"
-  const [dateFrom, setDateFrom]     = useState(""); // ISO LocalDateTime gửi lên BE
-  const [dateTo, setDateTo]         = useState(""); // ISO LocalDateTime gửi lên BE
+  const [customTo, setCustomTo] = useState(""); // "YYYY-MM-DD"
+  const [dateFrom, setDateFrom] = useState(""); // ISO LocalDateTime gửi lên BE
+  const [dateTo, setDateTo] = useState(""); // ISO LocalDateTime gửi lên BE
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -298,7 +304,7 @@ export function PurchaseOrderPage() {
   const [confirmPending, setConfirmPending] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
-  const [formSupplierId, setFormSupplierId] = useState("");
+  const [formSupplier, setFormSupplier] = useState<SupplierOption | null>(null);
   const [formNote, setFormNote] = useState("");
   const [formLines, setFormLines] = useState<LineItem[]>([
     { ...EMPTY_LINE, _key: "1" },
@@ -312,17 +318,6 @@ export function PurchaseOrderPage() {
   const [quickViewUserName, setQuickViewUserName] = useState<string>("");
 
   useEffect(() => {
-    getSuppliersPage(1)
-      .then(async (first) => {
-        let all = [...first.items];
-        for (let p = 2; p <= first.totalPages; p++) {
-          const page = await getSuppliersPage(p);
-          all = all.concat(page.items);
-        }
-        setSuppliers(all.filter((s) => s.status === "active"));
-      })
-      .catch(console.error);
-
     getProductsPage(1)
       .then(async (first) => {
         let all = [...first.items];
@@ -419,6 +414,7 @@ export function PurchaseOrderPage() {
           sortDir,
           dateFrom || undefined,
           dateTo || undefined,
+          supplierFilter ? Number(supplierFilter.id) : undefined,
         );
         setOrders(data.items);
         setTotalElements(data.totalElements);
@@ -433,19 +429,9 @@ export function PurchaseOrderPage() {
       }
     };
     fetchOrders();
-  }, [currentPage, refreshTrigger, debouncedQuery, sortBy, sortDir, showToast, statusFilter, dateFrom, dateTo]);
+  }, [currentPage, refreshTrigger, debouncedQuery, sortBy, sortDir, showToast, statusFilter, dateFrom, dateTo, supplierFilter]);
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1);
-
-  // Luôn dùng s.id (đã là chuỗi số nguyên hợp lệ sau khi mapper chạy String(s.id))
-  const supplierOptions = useMemo(
-    () =>
-      suppliers.map((s) => ({
-        value: s.id,
-        label: s.companyName,
-      })),
-    [suppliers],
-  );
 
   const updateLine = (
     idx: number,
@@ -506,7 +492,7 @@ export function PurchaseOrderPage() {
   );
 
   const resetForm = () => {
-    setFormSupplierId("");
+    setFormSupplier(null);
     setFormNote("");
     setFormLines([{ ...EMPTY_LINE, _key: "1" }]);
   };
@@ -518,7 +504,7 @@ export function PurchaseOrderPage() {
 
   // Mở form sửa — nạp dữ liệu đơn hiện tại vào form
   const openEdit = (order: PurchaseOrder) => {
-    setFormSupplierId(order.supplierId);
+    setFormSupplier({ id: order.supplierId, code: "", name: order.supplierName });
     setFormNote(order.note);
     setFormLines(
       order.details.map((d) => ({
@@ -536,7 +522,7 @@ export function PurchaseOrderPage() {
   };
 
   const handleCreate = async () => {
-    if (!formSupplierId) {
+    if (!formSupplier) {
       showToast("Vui lòng chọn nhà cung cấp", "warning");
       return;
     }
@@ -546,9 +532,7 @@ export function PurchaseOrderPage() {
       return;
     }
 
-    // formSupplierId là chuỗi số nguyên hợp lệ (vd: "1", "2")
-    // do supplierOptions.value luôn dùng s.id = String(numericId)
-    const supplierIdNum = Number(formSupplierId);
+    const supplierIdNum = Number(formSupplier.id);
     if (!supplierIdNum || isNaN(supplierIdNum)) {
       showToast("ID nhà cung cấp không hợp lệ, vui lòng chọn lại", "error");
       return;
@@ -587,7 +571,7 @@ export function PurchaseOrderPage() {
 
   const handleSaveEdit = async () => {
     if (!editingOrder) return;
-    if (!formSupplierId) {
+    if (!formSupplier) {
       showToast("Vui lòng chọn nhà cung cấp", "warning");
       return;
     }
@@ -596,7 +580,7 @@ export function PurchaseOrderPage() {
       showToast("Vui lòng thêm ít nhất một sản phẩm hợp lệ", "warning");
       return;
     }
-    const supplierIdNum = Number(formSupplierId);
+    const supplierIdNum = Number(formSupplier.id);
     if (!supplierIdNum || isNaN(supplierIdNum)) {
       showToast("ID nhà cung cấp không hợp lệ, vui lòng chọn lại", "error");
       return;
@@ -655,15 +639,26 @@ export function PurchaseOrderPage() {
   const renderForm = () => (
     <div className={styles.form}>
       <div className={styles.formRow}>
-        <Select
-          id="po-supplier"
-          label="Nhà cung cấp"
-          required
-          options={supplierOptions}
-          placeholder="Chọn nhà cung cấp"
-          value={formSupplierId}
-          onChange={(e) => setFormSupplierId(e.target.value)}
-        />
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              color: "var(--color-subtext)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: 6,
+            }}
+          >
+            Nhà cung cấp <span style={{ color: "var(--color-danger)" }}>*</span>
+          </label>
+          <SupplierSearchDropdown
+            value={formSupplier}
+            onSelect={setFormSupplier}
+            placeholder="Tìm và chọn nhà cung cấp..."
+          />
+        </div>
         <Input
           id="po-note"
           label="Ghi chú"
@@ -1006,6 +1001,18 @@ export function PurchaseOrderPage() {
             />
           </div>
 
+          {/* Lọc theo nhà cung cấp */}
+          <div className={styles.filterGroup}>
+            <SupplierSearchDropdown
+              value={supplierFilter}
+              onSelect={(s) => {
+                setSupplierFilter(s);
+                setCurrentPage(1);
+              }}
+              placeholder="Tất cả nhà cung cấp"
+            />
+          </div>
+
           {/* Lọc thời gian */}
           <div className={styles.dateFilterGroup}>
             <Select
@@ -1016,7 +1023,7 @@ export function PurchaseOrderPage() {
                 const val = e.target.value as DatePreset | "";
                 setDatePreset(val);
                 setCurrentPage(1);
-                if (val === "" ) {
+                if (val === "") {
                   // Xóa filter
                   setDateFrom("");
                   setDateTo("");
@@ -1084,7 +1091,7 @@ export function PurchaseOrderPage() {
             title="Danh sách đơn đặt hàng"
             actions={
               <SearchBox
-                placeholder="Tìm mã đơn, NCC..."
+                placeholder="Tìm mã đơn..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
