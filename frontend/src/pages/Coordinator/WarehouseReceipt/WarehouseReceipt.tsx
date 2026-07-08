@@ -13,8 +13,6 @@ import { SupplierDetailModal } from "../../../components/SupplierDetailModal/Sup
 import { VariantDetailModal } from "../../../components/VariantDetailModal/VariantDetailModal";
 import { UserDetailModal } from "../../../components/UserDetailModal/UserDetailModal";
 import { getReceivedPurchaseOrdersPage } from "../../../services/purchaseOrder";
-import { getSuppliersAll } from "../../../services/supplier";
-import type { Supplier } from "../../../types/supplier.types";
 import {
   getPaymentMethods,
   createPayment,
@@ -24,7 +22,12 @@ import {
 } from "../../../services/payment";
 import { formatCurrency, formatDateTime, formatNumber } from "../../../utils/formatters";
 import type { TableColumn } from "../../../types/common.types";
+import {
+  SupplierSearchDropdown,
+  type SupplierOption,
+} from "../../../components/SupplierSearchDropdown/SupplierSearchDropdown";
 import styles from "./WarehouseReceipt.module.css";
+
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   UNPAID: "Chưa thanh toán",
@@ -57,8 +60,6 @@ function formatVariantName(
 // Định dạng thời gian hiện tại ISO 8601 không có múi giờ
 function nowLocalIsoString(): string {
   const now = new Date();
-
-  // Hàm pad
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
     `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
@@ -70,23 +71,24 @@ function nowLocalIsoString(): string {
 type DatePreset = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom";
 
 const DATE_PRESET_OPTIONS: { value: DatePreset | ""; label: string }[] = [
-  { value: "",           label: "Tất cả thời gian" },
-  { value: "thisWeek",   label: "Tuần này" },
-  { value: "lastWeek",   label: "Tuần trước" },
-  { value: "thisMonth",  label: "Tháng này" },
-  { value: "lastMonth",  label: "Tháng trước" },
-  { value: "custom",     label: "Tự chọn..." },
+  { value: "", label: "Tất cả thời gian" },
+  { value: "thisWeek", label: "Tuần này" },
+  { value: "lastWeek", label: "Tuần trước" },
+  { value: "thisMonth", label: "Tháng này" },
+  { value: "lastMonth", label: "Tháng trước" },
+  { value: "custom", label: "Tự chọn..." },
 ];
 
-// Hàm toDateString
+/** Định dạng Date thành "YYYY-MM-DD" (local, không có UTC offset). */
 function toDateString(d: Date): string {
-
-  // Hàm pad
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// Lấy thông tin date range for preset
+/**
+ * Tính khoảng ngày cho preset định sẵn.
+ * Tuần tính từ Thứ Hai (ISO 8601).
+ */
 function getDateRangeForPreset(preset: DatePreset): { from: string; to: string } {
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=CN, 1=T2, ..., 6=T7
@@ -108,21 +110,22 @@ function getDateRangeForPreset(preset: DatePreset): { from: string; to: string }
   }
   if (preset === "thisMonth") {
     const first = new Date(now.getFullYear(), now.getMonth(), 1);
-    const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return { from: toDateString(first), to: toDateString(last) };
   }
   if (preset === "lastMonth") {
     const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
     return { from: toDateString(first), to: toDateString(last) };
   }
   return { from: "", to: "" };
 }
 
-// Hàm toIsoLocal
+/** Chuyển "YYYY-MM-DD" sang ISO LocalDateTime với giờ 00:00:00 hoặc 23:59:59. */
 function toIsoLocal(dateStr: string, endOfDay: boolean): string {
   return `${dateStr}T${endOfDay ? "23:59:59" : "00:00:00"}`;
 }
+
 
 interface PaymentFormState {
   paymentMethodId: string;
@@ -136,7 +139,6 @@ interface PaymentFormErrors {
   amount?: string;
 }
 
-// Thành phần PaymentModal
 function PaymentModal({
   receipt,
   onClose,
@@ -180,8 +182,6 @@ function PaymentModal({
     totalPaid !== null ? totalPaid : 0;
 
   useEffect(() => {
-
-    // Hàm fetchMethods
     const fetchMethods = async () => {
       try {
         setLoadingMethods(true);
@@ -229,8 +229,6 @@ function PaymentModal({
 
   useEffect(() => {
     let active = true;
-
-    // Hàm load
     const load = async () => {
       await Promise.resolve();
       if (active) {
@@ -243,7 +241,6 @@ function PaymentModal({
     };
   }, [fetchHistory, historyPage]);
 
-  // Xác thực dữ liệu
   function validate(): boolean {
     const newErrors: PaymentFormErrors = {};
 
@@ -264,7 +261,6 @@ function PaymentModal({
     return Object.keys(newErrors).length === 0;
   }
 
-  // Xử lý submit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
@@ -285,7 +281,7 @@ function PaymentModal({
       setTotalPaid(result.totalPaidAmount);
       setRemaining(result.remainingAmount);
 
-      // Đặt lại dữ liệu biểu mẫu
+      // Reset form
       setForm((prev) => ({
         ...prev,
         amount: "",
@@ -602,7 +598,7 @@ function PaymentModal({
   );
 }
 
-// Thành phần ReceiptDetailView
+
 function ReceiptDetailView({
   receipt,
   onClose,
@@ -765,7 +761,7 @@ function ReceiptDetailView({
   );
 }
 
-// Thành phần WarehouseReceiptPage
+
 export function WarehouseReceiptPage() {
   const { showToast } = useToast();
 
@@ -778,15 +774,14 @@ export function WarehouseReceiptPage() {
   const [sortBy, setSortBy] = useState<"receivedDate" | "totalAmount" | "totalQuantity">("receivedDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [supplierFilter, setSupplierFilter] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState<SupplierOption | null>(null);
 
   // Bộ lọc thời gian
   const [datePreset, setDatePreset] = useState<DatePreset | "">("");
   const [customFrom, setCustomFrom] = useState(""); // "YYYY-MM-DD"
-  const [customTo, setCustomTo]     = useState(""); // "YYYY-MM-DD"
-  const [dateFrom, setDateFrom]     = useState(""); // ISO LocalDateTime gửi lên BE
-  const [dateTo, setDateTo]         = useState(""); // ISO LocalDateTime gửi lên BE
+  const [customTo, setCustomTo] = useState(""); // "YYYY-MM-DD"
+  const [dateFrom, setDateFrom] = useState(""); // ISO LocalDateTime gửi lên BE
+  const [dateTo, setDateTo] = useState(""); // ISO LocalDateTime gửi lên BE
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -794,7 +789,7 @@ export function WarehouseReceiptPage() {
   const [detailReceipt, setDetailReceipt] = useState<PurchaseOrder | null>(null);
   const [paymentReceipt, setPaymentReceipt] = useState<PurchaseOrder | null>(null);
 
-  // Trạng thái các cửa sổ xem nhanh
+  // State cho quick-view modals
   const [quickViewSupplierId, setQuickViewSupplierId] = useState<string | null>(null);
   const [quickViewVariantId, setQuickViewVariantId] = useState<string | null>(null);
   const [quickViewUserId, setQuickViewUserId] = useState<string | null>(null);
@@ -808,17 +803,7 @@ export function WarehouseReceiptPage() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Tải danh sách nhà cung cấp khi khởi tạo
-  useEffect(() => {
-    getSuppliersAll()
-      .then((data) => {
-        setSuppliers(data);
-      })
-      .catch(console.error);
-  }, []);
-
-  
-  // Xử lý sort
+  /** Xử lý khi người dùng bấm vào header cột có thể sort */
   const handleSort = (field: "receivedDate" | "totalAmount" | "totalQuantity") => {
     console.log("[WarehouseReceipt Sort] Clicked:", field, "Current state:", { sortBy, sortDir });
     if (sortBy === field) {
@@ -830,7 +815,7 @@ export function WarehouseReceiptPage() {
     setCurrentPage(1);
   };
 
-  
+  /** Render label header có thể sort kèm icon chỉ hướng */
   const buildSortHeader = (
     label: string,
     field: "receivedDate" | "totalAmount" | "totalQuantity",
@@ -865,7 +850,7 @@ export function WarehouseReceiptPage() {
         sortDir,
         dateFrom || undefined,
         dateTo || undefined,
-        supplierFilter || undefined,
+        supplierFilter ? Number(supplierFilter.id) : undefined,
       );
       setReceipts(data.items);
       setTotalElements(data.totalElements);
@@ -882,8 +867,6 @@ export function WarehouseReceiptPage() {
 
   useEffect(() => {
     let active = true;
-
-    // Hàm load
     const load = async () => {
       await Promise.resolve();
       if (active) {
@@ -1003,7 +986,7 @@ export function WarehouseReceiptPage() {
         </div>
 
         <div className={styles.filterBar}>
-          
+          {/* Lọc trạng thái thanh toán (client-side) */}
           <div className={styles.filterGroup}>
             <Select
               id="paymentStatusFilter"
@@ -1021,25 +1004,19 @@ export function WarehouseReceiptPage() {
             />
           </div>
 
+          {/* Lọc theo nhà cung cấp */}
           <div className={styles.filterGroup}>
-            <Select
-              id="supplierFilter"
-              options={[
-                { value: "", label: "Tất cả nhà cung cấp" },
-                ...suppliers.map((s) => ({
-                  value: s.id,
-                  label: `${s.companyName} (${s.code})`,
-                })),
-              ]}
+            <SupplierSearchDropdown
               value={supplierFilter}
-              onChange={(e) => {
-                setSupplierFilter(e.target.value);
+              onSelect={(s) => {
+                setSupplierFilter(s);
                 setCurrentPage(1);
               }}
+              placeholder="Tất cả nhà cung cấp"
             />
           </div>
 
-          
+          {/* Lọc thời gian theo receivedDate */}
           <div className={styles.dateFilterGroup}>
             <Select
               id="datePresetFilter"
@@ -1067,7 +1044,7 @@ export function WarehouseReceiptPage() {
               }}
             />
 
-            
+            {/* Custom date inputs — chỉ hiện khi chọn "Tự chọn" */}
             {datePreset === "custom" && (
               <div className={styles.customDateRow}>
                 <input
@@ -1114,7 +1091,7 @@ export function WarehouseReceiptPage() {
             title="Danh sách phiếu nhập kho"
             actions={
               <SearchBox
-                placeholder="Tìm mã phiếu, NCC..."
+                placeholder="Tìm mã phiếu..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -1186,7 +1163,7 @@ export function WarehouseReceiptPage() {
         )}
       </Modal>
 
-      
+      {/* Quick-view modals: thông tin tương tác read-only */}
       <SupplierDetailModal
         supplierId={quickViewSupplierId}
         onClose={() => setQuickViewSupplierId(null)}

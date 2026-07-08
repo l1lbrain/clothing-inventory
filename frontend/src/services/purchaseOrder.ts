@@ -126,7 +126,7 @@ export async function getPurchaseOrdersPage(
   sortDir?: "asc" | "desc",
   fromDate?: string,
   toDate?: string,
-  supplierId?: number | string,
+  supplierId?: number,
 ): Promise<PaginatedPurchaseOrders> {
   const params = new URLSearchParams({ page: String(page) });
   if (keyword) params.set("keyword", keyword);
@@ -158,7 +158,7 @@ export async function getReceivedPurchaseOrdersPage(
   sortDir?: "asc" | "desc",
   fromDate?: string,
   toDate?: string,
-  supplierId?: number | string,
+  supplierId?: number,
 ): Promise<PaginatedPurchaseOrders> {
   const params = new URLSearchParams({ page: String(page) });
   if (keyword) params.set("keyword", keyword);
