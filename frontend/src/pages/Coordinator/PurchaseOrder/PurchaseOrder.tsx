@@ -301,7 +301,6 @@ export function PurchaseOrderPage() {
   const [detailOrder, setDetailOrder] = useState<PurchaseOrder | null>(null);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrder | null>(null);
   const [confirmReceive, setConfirmReceive] = useState<string | null>(null);
-  const [confirmPending, setConfirmPending] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
   const [formSupplier, setFormSupplier] = useState<SupplierOption | null>(null);
@@ -539,10 +538,7 @@ export function PurchaseOrderPage() {
     }
 
     const now = nowLocalIsoString();
-    const autoCode = `PO-${Date.now()}`;
-
     const payload: PurchaseOrderCreateRequestDto = {
-      code: autoCode,
       supplierId: supplierIdNum,
       orderDate: now,
       note: formNote || undefined,
@@ -586,7 +582,6 @@ export function PurchaseOrderPage() {
       return;
     }
     const payload: PurchaseOrderCreateRequestDto = {
-      code: editingOrder.code, // Giữ nguyên mã đơn gốc khi sửa
       supplierId: supplierIdNum,
       orderDate: editingOrder.orderDate,
       note: formNote || undefined,
@@ -625,7 +620,6 @@ export function PurchaseOrderPage() {
       await updatePurchaseOrderStatus(id, status);
       showToast(toastLabels[status] ?? "Đã cập nhật trạng thái!", "success");
       setConfirmReceive(null);
-      setConfirmPending(null);
       setConfirmCancel(null);
       setDetailOrder(null);
       triggerRefresh();
@@ -858,7 +852,7 @@ export function PurchaseOrderPage() {
         </Button>
         {order.status !== "RECEIVED" && (
           <>
-            {order.status === "DRAFT" && (
+            {(order.status === "DRAFT" || order.status === "PENDING") && (
               <Button
                 variant="secondary"
                 icon="fi fi-rr-edit"
@@ -871,10 +865,7 @@ export function PurchaseOrderPage() {
             {order.status === "DRAFT" && (
               <Button
                 icon="fi fi-rr-check"
-                onClick={() => {
-                  setDetailOrder(null);
-                  setConfirmPending(order.id);
-                }}
+                onClick={() => handleUpdateStatus(order.id, "PENDING")}
               >
                 Duyệt
               </Button>
@@ -1203,22 +1194,11 @@ export function PurchaseOrderPage() {
         </div>
       </Modal>
 
-      <ConfirmDialog
-        isOpen={!!confirmPending}
-        title="Duyệt đơn đặt hàng?"
-        message="Đơn hàng sẽ chuyển sang trạng thái 'Chờ nhập' và không thể chỉnh sửa. Bạn có chắc chắn?"
-        confirmLabel="Duyệt đơn"
-        cancelLabel="Huỷ"
-        onConfirm={() =>
-          confirmPending && handleUpdateStatus(confirmPending, "PENDING")
-        }
-        onCancel={() => setConfirmPending(null)}
-      />
 
       <ConfirmDialog
         isOpen={!!confirmReceive}
         title="Xác nhận nhập hàng?"
-        message="Sau khi xác nhận, trạng thái đơn sẽ chuyển thành 'Đã nhận hàng' và tồn kho sẽ được cập nhật."
+        message="Sau khi nhập, số lượng tồn kho sẽ tự động cập nhật. Kiểm tra kĩ thông tin trước khi xác nhận!"
         confirmLabel="Nhập hàng"
         cancelLabel="Huỷ"
         onConfirm={() =>
