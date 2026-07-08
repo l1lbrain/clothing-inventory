@@ -1,0 +1,184 @@
+.supplierDropdownWrap {
+  position: relative;
+  min-width: 220px;
+}
+
+.supplierDropdownTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 10px 0 12px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  /* background-color: var(--color-surface); */
+  background-color: var(--color-white);
+  cursor: pointer;
+  /* font-size: 0.85rem; */
+  font-size: var(--font-base);
+  color: var(--color-text);
+  transition: border-color var(--transition);
+  overflow: hidden;
+}
+
+.supplierDropdownTrigger:hover {
+  border-color: var(--color-primary);
+}
+
+.supplierDropdownTrigger.hasValue {
+  border-color: var(--color-primary);
+  /* background-color: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface)); */
+}
+
+.supplierTriggerText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplierTriggerPlaceholder {
+  flex: 1;
+  /* color: var(--color-subtext); */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplierDropdownClear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-subtext);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  font-size: 0.75rem;
+  transition: color var(--transition), background var(--transition);
+}
+
+.supplierDropdownClear:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.supplierCodeBadge {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--color-subtext);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  margin-left: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.supplierDropdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background var(--transition);
+  background-color: var(--color-surface, #fff);
+}
+
+.supplierDropdownItem:hover {
+  background-color: var(--color-bg);
+}
+
+.supplierDropdownItem.activeItem {
+  background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface)) !important;
+}
+
+.supplierItemName {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supplierLoadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 12px;
+  font-size: 0.83rem;
+  color: var(--color-subtext);
+}
+
+/* Spinner nhỏ cho loading state */
+.supplierSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: supplierSpin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes supplierSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdownSearchWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-subtext);
+  background-color: var(--color-bg);
+}
+
+.dropdownSearchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  background: transparent;
+}
+
+.dropdownList {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.noResults {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--color-subtext);
+}
