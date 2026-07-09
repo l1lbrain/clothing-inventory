@@ -62,7 +62,6 @@ export interface PaginatedPurchaseOrders {
 
 // Dữ liệu tạo đơn đặt hàng
 export interface PurchaseOrderCreateRequestDto {
-  code: string;
   supplierId: number;
   orderDate: string;
   note?: string;

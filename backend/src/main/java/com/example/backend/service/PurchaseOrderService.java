@@ -43,14 +43,15 @@ public class PurchaseOrderService {
     private final UserRepository userRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final PurchaseOrderDetailMapper purchaseOrderDetailMapper;
+    private final CacheService cacheService;
 
     public PageResponseDto<PurchaseOrderResponseDto> getAllPurchaseOrders(String keyword, PurchaseOrderStatus status,
             LocalDateTime fromDate, LocalDateTime toDate, Long supplierId, Pageable pageable) {
         Specification<PurchaseOrder> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // predicates.add(criteriaBuilder.notEqual(root.get("status"),
-            // PurchaseOrderStatus.CANCELLED));
+             predicates.add(criteriaBuilder.notEqual(root.get("status"),
+             PurchaseOrderStatus.CANCELLED));
 
             if (StringUtils.hasText(keyword)) {
                 String keywordLower = "%" + keyword.toLowerCase() + "%";
@@ -138,8 +139,10 @@ public class PurchaseOrderService {
 
         User currentUser = getCurrentUser();
 
+        String generatedCode = cacheService.generatePurchaseOrderCode();
+
         PurchaseOrder purchaseOrder = PurchaseOrder.builder()
-                .code(request.getCode())
+                .code(generatedCode)
                 .supplier(supplier)
                 .createdBy(currentUser)
                 .orderDate(request.getOrderDate())
@@ -249,7 +252,7 @@ public class PurchaseOrderService {
         PurchaseOrder order = purchaseOrderRepository.findById(id)
                 .orElseThrow(() -> new InvalidException(ErrorCode.PURCHASE_ORDER_NOT_FOUND));
 
-        if (order.getStatus() != PurchaseOrderStatus.DRAFT) {
+        if (order.getStatus() == PurchaseOrderStatus.RECEIVED) {
             throw new InvalidException(ErrorCode.PURCHASE_ORDER_CANNOT_BE_MODIFIED);
         }
 
