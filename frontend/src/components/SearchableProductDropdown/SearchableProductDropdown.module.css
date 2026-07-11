@@ -1,0 +1,117 @@
+/* Tái sử dụng style từ SearchableCategoryDropdown */
+.dropdownContainer {
+  position: relative;
+  width: 100%;
+}
+
+.dropdownTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  transition: border-color var(--transition);
+  height: 38px;
+  user-select: none;
+}
+
+.dropdownTrigger:hover {
+  border-color: var(--color-primary);
+}
+
+.placeholder {
+  color: var(--color-subtext);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+}
+
+.searchWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-subtext);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background var(--transition);
+  position: relative;
+}
+
+.item:hover {
+  background-color: var(--color-bg);
+}
+
+.activeItem {
+  background-color: var(--color-primary-light, #e0e7ff);
+}
+
+.itemName {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.itemSku {
+  font-size: 0.75rem;
+  color: var(--color-subtext);
+  font-family: monospace;
+}
+
+.checkmark {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  color: var(--color-primary);
+  font-size: 14px;
+}
+
+.noResults {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-subtext);
+  font-size: 0.85rem;
+}

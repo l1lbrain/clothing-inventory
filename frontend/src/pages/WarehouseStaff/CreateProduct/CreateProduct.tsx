@@ -4,11 +4,7 @@ import type { ProductFormData } from "../../../types/product.types";
 import { Input } from "../../../components/Input/Input";
 import { Button } from "../../../components/Button/Button";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
-import {
-  validate,
-  isRequired,
-  isPositiveNumber,
-} from "../../../utils/validators";
+import { validate, isRequired, isPositiveNumber } from "../../../utils/validators";
 import { ROUTES } from "../../../constants/routes";
 import { useToast } from "../../../components/Toast/ToastContext";
 import {
@@ -21,123 +17,11 @@ import {
 import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import { CategoryManagerModal } from "../../../components/CategoryManagerModal/CategoryManagerModal";
+import { SearchableCategoryDropdown } from "../../../components/SearchableCategoryDropdown/SearchableCategoryDropdown";
+import { ProductAttributeEditor, type ProductAttribute } from "../../../components/ProductAttributeEditor/ProductAttributeEditor";
+import { VariantPreviewTable, type VariantRow } from "../../../components/VariantPreviewTable/VariantPreviewTable";
+import { formatInputNumber } from "../../../utils/variantHelpers";
 import styles from "./CreateProduct.module.css";
-
-interface SearchableCategoryDropdownProps {
-  value: string;
-  onChange: (val: string) => void;
-  categories: CategoryResponseDto[];
-  onManageCategories: () => void;
-  error?: string;
-}
-
-// Bộ chọn danh mục hỗ trợ tìm kiếm và quản lý nhanh
-function SearchableCategoryDropdown({
-  value,
-  onChange,
-  categories,
-  onManageCategories,
-  error,
-}: SearchableCategoryDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-
-    // Xử lý click outside
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return categories;
-    return categories.filter((cat) =>
-      cat.name.toLowerCase().includes(q)
-    );
-  }, [categories, search]);
-
-  const selectedCategory = categories.find((c) => String(c.id) === value);
-
-  return (
-    <div className={styles.dropdownContainer} ref={dropdownRef}>
-      <div
-        className={styles.dropdownTrigger}
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ borderColor: error ? "var(--color-danger)" : undefined }}
-      >
-        <span>
-          {selectedCategory ? selectedCategory.name : "-- Chọn danh mục --"}
-        </span>
-        <i className={`fi fi-rr-angle-small-${isOpen ? "up" : "down"}`} />
-      </div>
-      {isOpen && (
-        <div className={styles.dropdownMenu}>
-          <div className={styles.dropdownSearchWrapper}>
-            <i className="fi fi-rr-search" />
-            <input
-              type="text"
-              className={styles.dropdownSearchInput}
-              placeholder="Tìm danh mục..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className={styles.dropdownList}>
-            {filtered.map((cat) => {
-              const isCurrentSelected = String(cat.id) === value;
-              return (
-                <div
-                  key={cat.id}
-                  className={[
-                    styles.dropdownItem,
-                    isCurrentSelected ? styles.activeItem : "",
-                  ].join(" ")}
-                  onClick={() => {
-                    onChange(String(cat.id));
-                    setIsOpen(false);
-                    setSearch("");
-                  }}
-                >
-                  <span>{cat.name}</span>
-                  {isCurrentSelected && (
-                    <div className={styles.checkmarkWrapper}>
-                      <i className="fi fi-rr-check" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {filtered.length === 0 && (
-              <div className={styles.noResults}>Không tìm thấy danh mục</div>
-            )}
-          </div>
-          <div
-            className={styles.dropdownManageBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              onManageCategories();
-              setIsOpen(false);
-            }}
-          >
-            <i className="fi fi-rr-settings-sliders" />
-            <span>Quản lý danh mục</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const INITIAL: ProductFormData = {
   sku: "",
@@ -151,11 +35,6 @@ const INITIAL: ProductFormData = {
   brand: "",
 };
 
-interface ProductAttribute {
-  name: string;
-  values: string[];
-}
-
 // Màn hình tạo mới sản phẩm
 export function CreateProduct() {
   const navigate = useNavigate();
@@ -164,13 +43,25 @@ export function CreateProduct() {
   const [categories, setCategories] = useState<CategoryResponseDto[]>([]);
   const { showToast } = useToast();
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-
-  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
 
+  // Attributes & variants state
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [tagInputs, setTagInputs] = useState<string[]>(["", "", ""]);
+  const [variantPriceOverrides, setVariantPriceOverrides] = useState<
+    Record<string, { importPrice: string; salePrice: string }>
+  >({});
+  const [removedVariantLabels, setRemovedVariantLabels] = useState<Set<string>>(new Set());
+  const [editingVariantLabel, setEditingVariantLabel] = useState<string | null>(null);
+  const [editingPrices, setEditingPrices] = useState({ importPrice: "", salePrice: "" });
+
+  // Image upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
+  // Unsaved changes guard
   const isDirty = useMemo(() => {
     if (isSubmitSuccessful) return false;
     return (
@@ -182,162 +73,53 @@ export function CreateProduct() {
       attributes.length > 0
     );
   }, [form, attributes, isSubmitSuccessful]);
-
   const blocker = useUnsavedChanges(isDirty);
 
+  // ─── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => {
     getCategories()
       .then((res) => {
         setCategories(res);
-        if (res.length > 0) {
-          setForm((prev) => ({ ...prev, category: String(res[0].id) }));
-        }
+        if (res.length > 0) setForm((prev) => ({ ...prev, category: String(res[0].id) }));
       })
-      .catch((err) => {
-        console.error("Failed to load categories:", err);
-      });
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
-    if (isSubmitSuccessful) {
-      navigate(ROUTES.WAREHOUSE_PRODUCTS);
-    }
+    if (isSubmitSuccessful) navigate(ROUTES.WAREHOUSE_PRODUCTS);
   }, [isSubmitSuccessful, navigate]);
 
-  const [tagInputs, setTagInputs] = useState<string[]>(["", "", ""]);
+  // Giải phóng blob URL khi unmount / thay đổi
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
 
-  // Tạo mới attribute
-  const addAttribute = () => {
-    if (attributes.length >= 3) return;
-    const defaultNames = ["Màu sắc", "Kích thước", "Chất liệu"];
-    const name =
-      defaultNames.find(
-        (dName) => !attributes.some((attr) => attr.name === dName),
-      ) || "";
-    setAttributes((prev) => [...prev, { name, values: [] }]);
-  };
-
-  // Xóa attribute
-  const removeAttribute = (index: number) => {
-    setAttributes((prev) => prev.filter((_, idx) => idx !== index));
-    setTagInputs((prev) => {
-      const copy = [...prev];
-      copy.splice(index, 1);
-      copy.push(""); // Giữ độ dài 3
-      return copy;
-    });
-  };
-
-  // Cập nhật attribute name
-  const updateAttributeName = (index: number, name: string) => {
-    setAttributes((prev) =>
-      prev.map((attr, idx) => {
-        if (idx !== index) return attr;
-        return { ...attr, name };
-      }),
-    );
-  };
-
-  // Cập nhật tag input
-  const updateTagInput = (index: number, value: string) => {
-    setTagInputs((prev) => {
-      const copy = [...prev];
-      copy[index] = value;
-      return copy;
-    });
-  };
-
-  // Xóa attribute value
-  const removeAttributeValue = (attrIndex: number, valIndex: number) => {
-    setAttributes((prev) =>
-      prev.map((attr, idx) => {
-        if (idx !== attrIndex) return attr;
-        return {
-          ...attr,
-          values: attr.values.filter((_, vIdx) => vIdx !== valIndex),
-        };
-      }),
-    );
-  };
-
-  const handleTagKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    attrIndex: number,
-  ) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      const value = tagInputs[attrIndex].trim();
-      if (value) {
-        const newVals = value
-          .split(",")
-          .map((v) => v.trim())
-          .filter(Boolean);
-        setAttributes((prev) =>
-          prev.map((attr, idx) => {
-            if (idx !== attrIndex) return attr;
-            const filtered = newVals.filter((v) => !attr.values.includes(v));
-            return {
-              ...attr,
-              values: [...attr.values, ...filtered],
-            };
-          }),
-        );
-        setTagInputs((prev) => {
-          const copy = [...prev];
-          copy[attrIndex] = "";
-          return copy;
-        });
-        // Xóa trạng thái ẩn khi thêm giá trị mới
-        setRemovedVariantLabels(new Set());
-      }
-    } else if (e.key === "Backspace" && !tagInputs[attrIndex]) {
-      setAttributes((prev) =>
-        prev.map((attr, idx) => {
-          if (idx !== attrIndex || attr.values.length === 0) return attr;
-          return {
-            ...attr,
-            values: attr.values.slice(0, -1),
-          };
-        }),
+  // ─── Computed ──────────────────────────────────────────────────────────────
+  const previewVariants = useMemo((): VariantRow[] => {
+    const activeAttrs = attributes.filter((a) => a.name.trim() && a.values.length > 0);
+    if (!activeAttrs.length) return [];
+    const cartesian = (arrays: string[][]): string[][] =>
+      arrays.reduce<string[][]>(
+        (acc, arr) => acc.flatMap((prev) => arr.map((val) => [...prev, val])),
+        [[]],
       );
-    }
-  };
+    return cartesian(activeAttrs.map((a) => a.values)).map((vals) => ({
+      label: vals.join(" / "),
+      values: vals,
+    }));
+  }, [attributes]);
 
-  // Xử lý tag blur
-  const handleTagBlur = (attrIndex: number) => {
-    const value = tagInputs[attrIndex].trim();
-    if (value) {
-      const newVals = value
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-      setAttributes((prev) =>
-        prev.map((attr, idx) => {
-          if (idx !== attrIndex) return attr;
-          const filtered = newVals.filter((v) => !attr.values.includes(v));
-          return {
-            ...attr,
-            values: [...attr.values, ...filtered],
-          };
-        }),
-      );
-      setTagInputs((prev) => {
-        const copy = [...prev];
-        copy[attrIndex] = "";
-        return copy;
-      });
-      // Thêm giá trị mới, khôi phục tổ hợp biến thể
-      setRemovedVariantLabels(new Set());
-    }
-  };
+  const visibleVariants = useMemo(
+    () => previewVariants.filter((v) => !removedVariantLabels.has(v.label)),
+    [previewVariants, removedVariantLabels],
+  );
 
+  // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleChange =
     (field: keyof ProductFormData) =>
-    (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >,
-    ) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
       if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
     };
@@ -345,65 +127,12 @@ export function CreateProduct() {
   const handlePriceChange =
     (field: "importPrice" | "salePrice") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rawVal = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
-      setForm((prev) => ({ ...prev, [field]: rawVal }));
+      const raw = e.target.value.replace(/\./g, "").replace(/[^0-9]/g, "");
+      setForm((prev) => ({ ...prev, [field]: raw }));
       if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
     };
 
-  // Hàm formatInputNumber
-  const formatInputNumber = (val: string | number) => {
-    if (!val && val !== 0) return "";
-    const cleanVal = String(val)
-      .replace(/\./g, "")
-      .replace(/[^0-9]/g, "");
-    if (!cleanVal) return "";
-    return new Intl.NumberFormat("vi-VN").format(Number(cleanVal));
-  };
-
-  // Tạo tổ hợp biến thể từ thuộc tính
-  interface VariantRow {
-    label: string;
-    values: string[];
-  }
-  const previewVariants = useMemo((): VariantRow[] => {
-    const activeAttrs = attributes.filter(
-      (a) => a.name.trim() && a.values.length > 0,
-    );
-    if (activeAttrs.length === 0) return [];
-    const cartesian = (arrays: string[][]): string[][] => {
-      return arrays.reduce<string[][]>(
-        (acc, arr) => acc.flatMap((prev) => arr.map((val) => [...prev, val])),
-        [[]],
-      );
-    };
-    const combos = cartesian(activeAttrs.map((a) => a.values));
-    return combos.map((vals) => ({
-      label: vals.join(" / "),
-      values: vals,
-    }));
-  }, [attributes]);
-
-  // Trạng thái giá và xóa từng biến thể
-  const [variantPriceOverrides, setVariantPriceOverrides] = useState<
-    Record<string, { importPrice: string; salePrice: string }>
-  >({});
-  const [removedVariantLabels, setRemovedVariantLabels] = useState<Set<string>>(
-    new Set(),
-  );
-  const [editingVariantLabel, setEditingVariantLabel] = useState<string | null>(
-    null,
-  );
-  const [editingPrices, setEditingPrices] = useState({
-    importPrice: "",
-    salePrice: "",
-  });
-
-  const visibleVariants = previewVariants.filter(
-    (v) => !removedVariantLabels.has(v.label),
-  );
-
-  // Hàm startEditVariant
-  const startEditVariant = (v: { label: string }) => {
+  const startEditVariant = (v: VariantRow) => {
     const override = variantPriceOverrides[v.label];
     setEditingPrices({
       importPrice: override?.importPrice || String(form.importPrice),
@@ -412,138 +141,93 @@ export function CreateProduct() {
     setEditingVariantLabel(v.label);
   };
 
-  // Hàm confirmEditVariant
   const confirmEditVariant = (label: string) => {
     setVariantPriceOverrides((prev) => {
       const next = { ...prev };
       const imp = editingPrices.importPrice.trim();
       const sale = editingPrices.salePrice.trim();
-
-      const isImpOverridden = imp !== "" && imp !== String(form.importPrice);
-      const isSaleOverridden = sale !== "" && sale !== String(form.salePrice);
-
-      if (!isImpOverridden && !isSaleOverridden) {
-        delete next[label];
-      } else {
-        next[label] = {
-          importPrice: isImpOverridden ? imp : "",
-          salePrice: isSaleOverridden ? sale : "",
-        };
-      }
+      const isImpOv = imp !== "" && imp !== String(form.importPrice);
+      const isSaleOv = sale !== "" && sale !== String(form.salePrice);
+      if (!isImpOv && !isSaleOv) delete next[label];
+      else next[label] = { importPrice: isImpOv ? imp : "", salePrice: isSaleOv ? sale : "" };
       return next;
     });
     setEditingVariantLabel(null);
   };
 
-  // Hàm cancelEditVariant
-  const cancelEditVariant = () => setEditingVariantLabel(null);
-
-  // Xóa variant
   const removeVariant = (label: string) => {
-    const newRemovedLabels = new Set([...removedVariantLabels, label]);
-    setRemovedVariantLabels(newRemovedLabels);
+    const newRemoved = new Set([...removedVariantLabels, label]);
+    setRemovedVariantLabels(newRemoved);
     if (editingVariantLabel === label) setEditingVariantLabel(null);
 
-    // Biến thể còn lại sau khi xóa
-    const remaining = previewVariants.filter(
-      (v) => !newRemovedLabels.has(v.label),
-    );
-
-    // Các thuộc tính đang dùng
-    const activeAttrs = attributes.filter(
-      (a) => a.name.trim() && a.values.length > 0,
-    );
-
-    // Kiểm tra giá trị thuộc tính còn dùng
+    const remaining = previewVariants.filter((v) => !newRemoved.has(v.label));
+    const activeAttrs = attributes.filter((a) => a.name.trim() && a.values.length > 0);
     const usedValueSets = activeAttrs.map(
-      (_, attrIdx) =>
-        new Set(remaining.map((v) => v.values[attrIdx]).filter(Boolean)),
+      (_, i) => new Set(remaining.map((v) => v.values[i]).filter(Boolean)),
     );
 
-    // Cập nhật lại thuộc tính
     setAttributes((prev) => {
-      let activeIdx = 0;
+      let ai = 0;
       const updated = prev
         .map((attr) => {
           const isActive = attr.name.trim() && attr.values.length > 0;
-          if (!isActive) return attr; // giữ nguyên
-          const used = usedValueSets[activeIdx] ?? new Set<string>();
-          activeIdx++;
+          if (!isActive) return attr;
+          const used = usedValueSets[ai++] ?? new Set<string>();
           return { ...attr, values: attr.values.filter((v) => used.has(v)) };
         })
-        .filter((attr) => attr.values.length > 0); // xóa thuộc tính rỗng
-
-      // Đồng bộ input với thuộc tính
+        .filter((attr) => attr.values.length > 0);
       setTagInputs((ti) => {
         const next = updated.map((_, i) => ti[i] ?? "");
-        // điền đủ 3 để tránh lỗi
         while (next.length < 3) next.push("");
         return next;
       });
-
       return updated;
     });
   };
 
-  // Quản lý URL hiển thị tạm thời của ảnh và file thực tế
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("");
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-
-  // Giải phóng URL tạm thời tránh rò rỉ bộ nhớ
-  useEffect(() => {
-    return () => {
-      if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-    };
-  }, [imagePreviewUrl]);
-
-  // Xử lý chọn tệp tin ảnh từ thiết bị
   const handleFileSelect = (file: File) => {
     setSelectedImageFile(file);
     const localUrl = URL.createObjectURL(file);
     setImagePreviewUrl(localUrl);
   };
 
-  // Tải ảnh thực tế lên Cloudinary
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
     if (!cloudName || !uploadPreset || cloudName.includes("here") || uploadPreset.includes("here")) {
       throw new Error("Chưa cấu hình Cloudinary trong tệp .env!");
     }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Tải ảnh thất bại");
-    }
-
-    const result = await response.json();
-    return result.secure_url;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", uploadPreset);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) throw new Error("Tải ảnh thất bại");
+    return (await res.json()).secure_url;
   };
 
-  // Xử lý gỡ ảnh xem trước
   const handleRemoveImage = () => {
     setSelectedImageFile(null);
-    if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
+    if (imagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(imagePreviewUrl);
     setImagePreviewUrl("");
   };
 
-  // Xử lý submit
+  const resetForm = () => {
+    const defaultCat = categories.length > 0 ? String(categories[0].id) : "";
+    setForm({ ...INITIAL, category: defaultCat });
+    setAttributes([]);
+    setTagInputs(["", "", ""]);
+    setVariantPriceOverrides({});
+    setRemovedVariantLabels(new Set());
+    setEditingVariantLabel(null);
+    setErrors({});
+    setSelectedImageFile(null);
+    if (imagePreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(imagePreviewUrl);
+    setImagePreviewUrl("");
+  };
+
   const handleSubmit = async () => {
     const errs = validate(form as unknown as Record<string, string>, {
       name: [isRequired],
@@ -552,61 +236,31 @@ export function CreateProduct() {
       importPrice: [(v) => isPositiveNumber(v)],
       salePrice: [(v) => isPositiveNumber(v)],
     });
+    if (Object.keys(errs).length) { setErrors(errs); return; }
 
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
-
-    const activeAttrs = attributes.filter(
-      (attr) => attr.name.trim() !== "" && attr.values.length > 0,
-    );
-    const option1Name = activeAttrs[0] ? activeAttrs[0].name : null;
-    const option2Name = activeAttrs[1] ? activeAttrs[1].name : null;
-    const option3Name = activeAttrs[2] ? activeAttrs[2].name : null;
-
+    const activeAttrs = attributes.filter((a) => a.name.trim() && a.values.length > 0);
     const defaultImport = Number(form.importPrice);
     const defaultSale = Number(form.salePrice);
 
-    // Tạo danh sách biến thể cuối
-    const variantsList: VariantCreateRequestDto[] = visibleVariants.map((v) => {
-      const override = variantPriceOverrides[v.label];
-      const purchasePrice = override?.importPrice
-        ? Number(override.importPrice)
-        : defaultImport;
-      const salePrice = override?.salePrice
-        ? Number(override.salePrice)
-        : defaultSale;
-      return {
-        option1Value: v.values[0] || null,
-        option2Value: v.values[1] || null,
-        option3Value: v.values[2] || null,
-        purchasePrice,
-        salePrice,
-      };
-    });
-
-    // Tạo biến thể mặc định nếu không có thuộc tính
-    if (variantsList.length === 0 && activeAttrs.length === 0) {
-      variantsList.push({
-        option1Value: null,
-        option2Value: null,
-        option3Value: null,
-        purchasePrice: defaultImport,
-        salePrice: defaultSale,
-      });
-    }
+    const variantsList: VariantCreateRequestDto[] =
+      visibleVariants.length > 0
+        ? visibleVariants.map((v) => {
+            const ov = variantPriceOverrides[v.label];
+            return {
+              option1Value: v.values[0] || null,
+              option2Value: v.values[1] || null,
+              option3Value: v.values[2] || null,
+              purchasePrice: ov?.importPrice ? Number(ov.importPrice) : defaultImport,
+              salePrice: ov?.salePrice ? Number(ov.salePrice) : defaultSale,
+            };
+          })
+        : [{ option1Value: null, option2Value: null, option3Value: null, purchasePrice: defaultImport, salePrice: defaultSale }];
 
     let imageUrl = "";
     if (selectedImageFile) {
       setUploadingImage(true);
-      try {
-        imageUrl = await uploadToCloudinary(selectedImageFile);
-      } catch {
-        showToast("Không thể tải ảnh lên!", "error");
-        setUploadingImage(false);
-        return;
-      }
+      try { imageUrl = await uploadToCloudinary(selectedImageFile); }
+      catch { showToast("Không thể tải ảnh lên!", "error"); setUploadingImage(false); return; }
     }
 
     const payload: ProductCreateRequestDto = {
@@ -616,67 +270,31 @@ export function CreateProduct() {
       unit: form.unit,
       description: form.description || "",
       imageUrl: imageUrl || undefined,
-      option1Name,
-      option2Name,
-      option3Name,
+      option1Name: activeAttrs[0]?.name || null,
+      option2Name: activeAttrs[1]?.name || null,
+      option3Name: activeAttrs[2]?.name || null,
       variants: variantsList,
     };
 
     try {
       await createProduct(payload);
       showToast("Tạo sản phẩm mới thành công!", "success");
-      
-      // Xóa sạch các trường dữ liệu và thuộc tính
-      const defaultCategory = categories.length > 0 ? String(categories[0].id) : "";
-      setForm({ ...INITIAL, category: defaultCategory });
-      setAttributes([]);
-      setTagInputs(["", "", ""]);
-      setVariantPriceOverrides({});
-      setRemovedVariantLabels(new Set());
-      setEditingVariantLabel(null);
-      setErrors({});
-
-      // Xóa sạch ảnh
-      setSelectedImageFile(null);
-      if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-      setImagePreviewUrl("");
-
+      resetForm();
       setIsSubmitSuccessful(true);
     } catch (err) {
-      console.error("Failed to create product:", err);
-      const errMsg =
-        err instanceof Error
-          ? err.message
-          : "Không thể tạo sản phẩm. Vui lòng thử lại!";
-      showToast(errMsg, "error");
+      const msg = err instanceof Error ? err.message : "Không thể tạo sản phẩm. Vui lòng thử lại!";
+      showToast(msg, "error");
     } finally {
       setUploadingImage(false);
     }
   };
 
-  // Xử lý clear all
   const handleClearAll = () => {
-    const defaultCategory = categories.length > 0 ? String(categories[0].id) : "";
-    setForm({ ...INITIAL, category: defaultCategory });
-    setAttributes([]);
-    setTagInputs(["", "", ""]);
-    setVariantPriceOverrides({});
-    setRemovedVariantLabels(new Set());
-    setEditingVariantLabel(null);
-    setErrors({});
-
-    // Dọn dẹp tệp ảnh đã chọn
-    setSelectedImageFile(null);
-    if (imagePreviewUrl && imagePreviewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-    setImagePreviewUrl("");
-
+    resetForm();
     showToast("Đã xóa trắng tất cả các trường thông tin", "success");
   };
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <section>
       <div className={styles.container}>
@@ -689,27 +307,13 @@ export function CreateProduct() {
 
         <div className={styles.content}>
           <div className={styles.mainCol}>
+            {/* Thông tin cơ bản */}
             <Card className={styles.visibleOverflowCard}>
               <CardHeader title="Thông tin cơ bản" />
               <CardBody>
                 <div className={styles.formGrid}>
-                  <Input
-                    id="name"
-                    label="Tên sản phẩm"
-                    required
-                    value={form.name}
-                    onChange={handleChange("name")}
-                    error={errors.name}
-                    placeholder="Nhập tên sản phẩm"
-                  />
-                  <Input
-                    id="brand"
-                    label="Thương hiệu"
-                    value={form.brand}
-                    onChange={handleChange("brand")}
-                    error={errors.brand}
-                    placeholder="VD: SapoBrand"
-                  />
+                  <Input id="name" label="Tên sản phẩm" required value={form.name} onChange={handleChange("name")} error={errors.name} placeholder="Nhập tên sản phẩm" />
+                  <Input id="brand" label="Thương hiệu" value={form.brand} onChange={handleChange("brand")} placeholder="VD: SapoBrand" />
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
                       Danh mục <span className={styles.required}>*</span>
@@ -724,336 +328,76 @@ export function CreateProduct() {
                       onManageCategories={() => setShowCategoryModal(true)}
                       error={errors.category}
                     />
-                    {errors.category && (
-                      <span className={styles.errorText}>
-                        {errors.category}
-                      </span>
-                    )}
+                    {errors.category && <span className={styles.errorText}>{errors.category}</span>}
                   </div>
-                  <Input
-                    id="unit"
-                    label="Đơn vị tính"
-                    required
-                    value={form.unit}
-                    onChange={handleChange("unit")}
-                    error={errors.unit}
-                    placeholder="VD: Cái, Bộ, Đôi..."
-                  />
-                  <Input
-                    id="importPrice"
-                    label="Giá nhập"
-                    required
-                    type="text"
-                    suffix="VND"
-                    value={formatInputNumber(form.importPrice)}
-                    onChange={handlePriceChange("importPrice")}
-                    error={errors.importPrice}
-                    placeholder="0"
-                  />
-                  <Input
-                    id="salePrice"
-                    label="Giá bán"
-                    required
-                    type="text"
-                    suffix="VND"
-                    value={formatInputNumber(form.salePrice)}
-                    onChange={handlePriceChange("salePrice")}
-                    error={errors.salePrice}
-                    placeholder="0"
-                  />
+                  <Input id="unit" label="Đơn vị tính" required value={form.unit} onChange={handleChange("unit")} error={errors.unit} placeholder="VD: Cái, Bộ, Đôi..." />
+                  <Input id="importPrice" label="Giá nhập" required type="text" suffix="VND" value={formatInputNumber(form.importPrice)} onChange={handlePriceChange("importPrice")} error={errors.importPrice} placeholder="0" />
+                  <Input id="salePrice" label="Giá bán" required type="text" suffix="VND" value={formatInputNumber(form.salePrice)} onChange={handlePriceChange("salePrice")} error={errors.salePrice} placeholder="0" />
                 </div>
-
                 <div className={styles.formGroup}>
-                  <label htmlFor="description" className={styles.label}>
-                    Mô tả sản phẩm
-                  </label>
-                  <textarea
-                    id="description"
-                    className={styles.textarea}
-                    rows={4}
-                    value={form.description}
-                    onChange={handleChange("description")}
-                    placeholder="Nhập mô tả sản phẩm..."
-                    maxLength={1000}
-                  />
+                  <label htmlFor="description" className={styles.label}>Mô tả sản phẩm</label>
+                  <textarea id="description" className={styles.textarea} rows={4} value={form.description} onChange={handleChange("description")} placeholder="Nhập mô tả sản phẩm..." maxLength={1000} />
                 </div>
               </CardBody>
             </Card>
 
+            {/* Thuộc tính */}
             <Card>
               <CardHeader
                 title="Thuộc tính sản phẩm"
                 actions={
                   attributes.length < 3 ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon="fi fi-rr-add"
-                      onClick={addAttribute}
-                      type="button"
-                    >
+                    <Button variant="secondary" size="sm" icon="fi fi-rr-add" onClick={() => {
+                      if (attributes.length >= 3) return;
+                      const names = ["Màu sắc", "Kích thước", "Chất liệu"];
+                      const name = names.find((n) => !attributes.some((a) => a.name === n)) || "";
+                      setAttributes((prev) => [...prev, { name, values: [] }]);
+                    }} type="button">
                       Thêm thuộc tính
                     </Button>
                   ) : undefined
                 }
               />
               <CardBody>
-                {attributes.length === 0 ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "24px",
-                      color: "var(--color-subtext)",
-                      fontSize: "var(--font-base)",
-                    }}
-                  >
-                    Sản phẩm này chưa có thuộc tính (VD: kích thước, màu sắc).
-                    Nhấp "Thêm thuộc tính" để cấu hình.
-                  </div>
-                ) : (
-                  <div className={styles.attrList}>
-                    {attributes.map((attr, index) => (
-                      <div key={index} className={styles.attrRow}>
-                        <div className={styles.attrNameGroup}>
-                          <Input
-                            id={`attr-name-${index}`}
-                            label={`Tên thuộc tính ${index + 1}`}
-                            placeholder="VD: Màu sắc, Kích thước..."
-                            value={attr.name}
-                            onChange={(e) =>
-                              updateAttributeName(index, e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className={styles.attrValueGroup}>
-                          <label className={styles.label}>
-                            Giá trị thuộc tính
-                          </label>
-                          <div
-                            className={styles.tagsInputWrapper}
-                            onClick={() =>
-                              document
-                                .getElementById(`attr-input-${index}`)
-                                ?.focus()
-                            }
-                          >
-                            {attr.values.map((val, valIdx) => (
-                              <span key={valIdx} className={styles.tag}>
-                                {val}
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    removeAttributeValue(index, valIdx)
-                                  }
-                                  aria-label="Xóa"
-                                >
-                                  <i className="fi fi-rr-cross-small" />
-                                </button>
-                              </span>
-                            ))}
-                            <input
-                              id={`attr-input-${index}`}
-                              type="text"
-                              className={styles.tagInput}
-                              placeholder={
-                                attr.values.length === 0
-                                  ? "Nhập giá trị..."
-                                  : "Thêm..."
-                              }
-                              value={tagInputs[index]}
-                              onChange={(e) =>
-                                updateTagInput(index, e.target.value)
-                              }
-                              onKeyDown={(e) => handleTagKeyDown(e, index)}
-                              onBlur={() => handleTagBlur(index)}
-                            />
-                          </div>
-                        </div>
-                        <div className={styles.attrDeleteGroup}>
-                          <Button
-                            variant="danger"
-                            onClick={() => removeAttribute(index)}
-                            icon="fi fi-rr-trash"
-                            type="button"
-                          >
-                            Xóa
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <ProductAttributeEditor
+                  attributes={attributes}
+                  tagInputs={tagInputs}
+                  onAttributesChange={(attrs) => {
+                    setAttributes(attrs);
+                    setRemovedVariantLabels(new Set());
+                  }}
+                  onTagInputsChange={setTagInputs}
+                />
               </CardBody>
             </Card>
 
+            {/* Bảng biến thể */}
             {visibleVariants.length > 0 && (
               <Card>
-                <CardHeader
-                  title={`Danh sách biến thể (${visibleVariants.length})`}
-                />
+                <CardHeader title={`Danh sách biến thể (${visibleVariants.length})`} />
                 <CardBody className={styles.variantsCardBody}>
-                  <div className={styles.variantsTableWrapper}>
-                    <table className={styles.variantsTable}>
-                      <thead>
-                        <tr>
-                          <th className={styles.colStt}>STT</th>
-                          {attributes
-                            .filter((a) => a.name.trim() && a.values.length > 0)
-                            .map((a, i) => (
-                              <th key={i}>{a.name}</th>
-                            ))}
-                          <th className={styles.colPrice}>Giá nhập</th>
-                          <th className={styles.colPrice}>Giá bán</th>
-                          <th className={styles.colActions}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleVariants.map((v, idx) => {
-                          const override = variantPriceOverrides[v.label];
-                          const displayImport =
-                            override?.importPrice || form.importPrice;
-                          const displaySale =
-                            override?.salePrice || form.salePrice;
-                          const isEditing = editingVariantLabel === v.label;
-                          return (
-                            <tr
-                              key={v.label}
-                              className={
-                                isEditing ? styles.variantRowEditing : ""
-                              }
-                            >
-                              <td className={styles.variantIndex}>{idx + 1}</td>
-                              {v.values.map((val, vi) => (
-                                <td key={vi}>
-                                  <span className={styles.variantTag}>
-                                    {val}
-                                  </span>
-                                </td>
-                              ))}
-                              <td className={styles.colPrice}>
-                                {isEditing ? (
-                                  <input
-                                    className={styles.priceInput}
-                                    type="text"
-                                    value={formatInputNumber(
-                                      editingPrices.importPrice,
-                                    )}
-                                    onChange={(e) => {
-                                      const raw = e.target.value
-                                        .replace(/\./g, "")
-                                        .replace(/[^0-9]/g, "");
-                                      setEditingPrices((p) => ({
-                                        ...p,
-                                        importPrice: raw,
-                                      }));
-                                    }}
-                                    placeholder="0"
-                                  />
-                                ) : (
-                                  <span
-                                    className={
-                                      override?.importPrice
-                                        ? styles.priceOverride
-                                        : ""
-                                    }
-                                  >
-                                    {displayImport
-                                      ? new Intl.NumberFormat("vi-VN").format(
-                                          Number(displayImport),
-                                        ) + " VND"
-                                      : "—"}
-                                  </span>
-                                )}
-                              </td>
-                              <td className={styles.colPrice}>
-                                {isEditing ? (
-                                  <input
-                                    className={styles.priceInput}
-                                    type="text"
-                                    value={formatInputNumber(
-                                      editingPrices.salePrice,
-                                    )}
-                                    onChange={(e) => {
-                                      const raw = e.target.value
-                                        .replace(/\./g, "")
-                                        .replace(/[^0-9]/g, "");
-                                      setEditingPrices((p) => ({
-                                        ...p,
-                                        salePrice: raw,
-                                      }));
-                                    }}
-                                    placeholder="0"
-                                  />
-                                ) : (
-                                  <span
-                                    className={
-                                      override?.salePrice
-                                        ? styles.priceOverride
-                                        : ""
-                                    }
-                                  >
-                                    {displaySale
-                                      ? new Intl.NumberFormat("vi-VN").format(
-                                          Number(displaySale),
-                                        ) + " VND"
-                                      : "—"}
-                                  </span>
-                                )}
-                              </td>
-                              <td className={styles.colActions}>
-                                {isEditing ? (
-                                  <div className={styles.actionBtns}>
-                                    <button
-                                      type="button"
-                                      className={styles.actionBtn}
-                                      title="Xác nhận"
-                                      onClick={() =>
-                                        confirmEditVariant(v.label)
-                                      }
-                                    >
-                                      <i className="fi fi-rr-check" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.actionBtn}
-                                      title="Hủy"
-                                      onClick={cancelEditVariant}
-                                    >
-                                      <i className="fi fi-rr-cross-small" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className={styles.actionBtns}>
-                                    <button
-                                      type="button"
-                                      className={styles.actionBtn}
-                                      title="Sửa giá"
-                                      onClick={() => startEditVariant(v)}
-                                    >
-                                      <i className="fi fi-rr-edit" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                                      title="Xóa biến thể"
-                                      onClick={() => removeVariant(v.label)}
-                                    >
-                                      <i className="fi fi-rr-trash" />
-                                    </button>
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <VariantPreviewTable
+                    variants={visibleVariants}
+                    attributes={attributes}
+                    defaultImportPrice={String(form.importPrice)}
+                    defaultSalePrice={String(form.salePrice)}
+                    variantPriceOverrides={variantPriceOverrides}
+                    editingVariantLabel={editingVariantLabel}
+                    editingPrices={editingPrices}
+                    onStartEdit={startEditVariant}
+                    onConfirmEdit={confirmEditVariant}
+                    onCancelEdit={() => setEditingVariantLabel(null)}
+                    onRemove={removeVariant}
+                    onEditingPriceChange={(field, val) =>
+                      setEditingPrices((prev) => ({ ...prev, [field]: val }))
+                    }
+                  />
                 </CardBody>
               </Card>
             )}
           </div>
 
+          {/* Cột phụ – hình ảnh + actions */}
           <div className={styles.sideCol}>
             <Card>
               <CardHeader title="Hình ảnh" />
@@ -1061,14 +405,10 @@ export function CreateProduct() {
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileSelect(file);
-                  }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
                   accept="image/*"
                   style={{ display: "none" }}
                 />
-
                 {uploadingImage ? (
                   <div className={styles.imageUploadLoading}>
                     <i className="fi fi-rr-spinner spinner" style={{ animation: "spin 1s linear infinite" }} />
@@ -1077,21 +417,12 @@ export function CreateProduct() {
                 ) : imagePreviewUrl ? (
                   <div className={styles.imagePreviewContainer}>
                     <img src={imagePreviewUrl} alt="Sản phẩm" className={styles.imagePreview} />
-                    <button
-                      type="button"
-                      className={styles.removeImageBtn}
-                      onClick={handleRemoveImage}
-                      title="Xóa ảnh"
-                    >
+                    <button type="button" className={styles.removeImageBtn} onClick={handleRemoveImage} title="Xóa ảnh">
                       <i className="fi fi-rr-trash" />
                     </button>
                   </div>
                 ) : (
-                  <div
-                    className={styles.imageUpload}
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{ cursor: "pointer" }}
-                  >
+                  <div className={styles.imageUpload} onClick={() => fileInputRef.current?.click()} style={{ cursor: "pointer" }}>
                     <i className="fi fi-rr-picture" aria-hidden />
                     <p>Chọn hình ảnh cho sản phẩm</p>
                     <Button variant="secondary" size="sm" icon="fi fi-rr-upload" type="button">
@@ -1105,11 +436,7 @@ export function CreateProduct() {
             <Card>
               <CardBody>
                 <div className={styles.actions}>
-                  <Button
-                    variant="secondary"
-                    onClick={handleClearAll}
-                    icon="fi fi-rr-trash"
-                  >
+                  <Button variant="secondary" onClick={handleClearAll} icon="fi fi-rr-trash">
                     Xóa tất cả
                   </Button>
                   <Button onClick={handleSubmit} icon="fi fi-rr-check">
@@ -1137,13 +464,9 @@ export function CreateProduct() {
         onClose={() => setShowCategoryModal(false)}
         onCategoriesChanged={(updated) => {
           setCategories(updated);
-          // Nếu danh mục đang chọn bị xóa → reset về danh mục đầu tiên
           const stillExists = updated.some((c) => String(c.id) === form.category);
           if (!stillExists) {
-            setForm((prev) => ({
-              ...prev,
-              category: updated.length > 0 ? String(updated[0].id) : "",
-            }));
+            setForm((prev) => ({ ...prev, category: updated.length > 0 ? String(updated[0].id) : "" }));
           }
         }}
       />

@@ -1,0 +1,213 @@
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.receiptCode {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.supplierName {
+  color: var(--color-subtext);
+  font-size: var(--font-sm);
+  margin-top: 4px;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.partial {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.unpaid {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Amount summary */
+.amounts {
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.amountRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-sm);
+}
+
+.paidAmount {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.remainRow {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-base);
+  font-weight: 600;
+}
+
+.remainAmount {
+  color: var(--color-danger);
+  font-weight: 700;
+  font-size: var(--font-base);
+}
+
+/* Payment form */
+.paySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.payLabel {
+  font-weight: 600;
+  font-size: var(--font-base);
+  color: var(--color-text);
+}
+
+.methodSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-danger);
+}
+
+.methodGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.methodBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 16px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: all var(--transition);
+}
+
+.methodBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.methodActive {
+  border-color: var(--color-primary) !important;
+  background: var(--color-info-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.loading {
+  font-size: var(--font-sm);
+  color: var(--color-subtext);
+}
+
+.errorText {
+  font-size: var(--font-xs);
+  color: var(--color-danger);
+}
+
+.amountGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.submitRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* History */
+.historyTitle {
+  font-weight: 600;
+  font-size: var(--font-base);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.historyBadge {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  padding: 1px 8px;
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.detailFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.clickableLink {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.clickableLink:hover {
+  opacity: 0.8;
+}
