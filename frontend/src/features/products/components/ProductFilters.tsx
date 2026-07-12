@@ -1,14 +1,10 @@
 import { useMemo } from "react";
 import type { CategoryResponseDto } from "../../../services/product";
-import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import { Select } from "../../../components/Select/Select";
 import { PRODUCT_STATUS_OPTIONS } from "../../../constants/statusMaps";
 import styles from "./ProductFilters.module.css";
 
 interface Props {
-  searchQuery: string;
-  onSearchChange: (val: string) => void;
-  onSearchClear: () => void;
   categoryFilter: string;
   onCategoryChange: (val: string) => void;
   statusFilter: string;
@@ -17,9 +13,6 @@ interface Props {
 }
 
 export function ProductFilters({
-  searchQuery,
-  onSearchChange,
-  onSearchClear,
   categoryFilter,
   onCategoryChange,
   statusFilter,
@@ -50,12 +43,6 @@ export function ProductFilters({
           onChange={(e) => onStatusChange(e.target.value)}
         />
       </div>
-      <SearchBox
-        placeholder="Tìm SKU, tên sản phẩm..."
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        onClear={onSearchClear}
-      />
     </div>
   );
 }

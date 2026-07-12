@@ -14,6 +14,8 @@ import { Modal } from "../../../components/Modal/Modal";
 import { Button } from "../../../components/Button/Button";
 import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
 import { UserDetailModal } from "../../../components/UserDetailModal/UserDetailModal";
+import { SearchBox } from "../../../components/SearchBox/SearchBox";
+import { VariantDetailModal } from "../../../components/VariantDetailModal/VariantDetailModal";
 import { useToast } from "../../../components/Toast/ToastContext";
 import { validate, isRequired, isPositiveNumber } from "../../../utils/validators";
 import { formatCurrency, formatDateTime } from "../../../utils/formatters";
@@ -347,9 +349,6 @@ export function ProductList() {
         </div>
 
         <ProductFilters
-          searchQuery={searchQuery}
-          onSearchChange={(v) => setSearchQuery(v)}
-          onSearchClear={() => { setSearchQuery(""); setCurrentPage(1); }}
           categoryFilter={categoryFilter}
           onCategoryChange={(v) => setCategoryFilter(v)}
           statusFilter={statusFilter}
@@ -360,6 +359,14 @@ export function ProductList() {
         <Card>
           <CardHeader
             title="Tất cả sản phẩm"
+            actions={
+              <SearchBox
+                placeholder="Tìm SKU, tên sản phẩm..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                onClear={() => { setSearchQuery(""); setCurrentPage(1); }}
+              />
+            }
           />
           <CardBody className={styles.tableBody}>
             <ProductTable
@@ -384,6 +391,11 @@ export function ProductList() {
       <Modal isOpen={!!selectedProduct && !isEditOpen} onClose={() => setSelectedProduct(null)} title="Chi tiết sản phẩm" size="xl">
         {selectedProduct && (
           <>
+            {selectedProduct.image && (
+              <div className={styles.productImageSection}>
+                <img src={selectedProduct.image} alt={selectedProduct.name} className={styles.productDetailImage} />
+              </div>
+            )}
             <div className={styles.detail}>
               {Object.entries({
                 "Mã sản phẩm": selectedProduct.code,
@@ -514,32 +526,27 @@ export function ProductList() {
         onShowToast={showToast}
       />
 
-      {/* Variant modals */}
+      {/* Variant detail – dùng VariantDetailModal dùng chung */}
+      <VariantDetailModal
+        variantId={isVariantDetailOpen ? (selectedVariant?.id ?? null) : null}
+        onClose={closeVariantModals}
+        onEdit={selectedVariant ? () => handleVariantEdit(selectedVariant) : undefined}
+      />
+
+      {/* Variant edit modal */}
       <EditVariantModal
-        isDetailOpen={isVariantDetailOpen}
         isEditOpen={isVariantEditOpen}
         variant={selectedVariant}
         product={selectedProduct}
         form={variantForm}
         errors={variantErrors}
-        activeTab={activeVariantTab}
-        txHistory={txHistory}
-        txPage={txPage}
-        txTotalElements={txTotalElements}
-        txPageSize={txPageSize}
-        txLoading={txLoading}
         poDetail={poDetail}
         poDetailLoading={poDetailLoading}
-        quickViewUserId={quickViewUserId}
-        onTabChange={(tab) => { setActiveVariantTab(tab); if (tab === "history" && txHistory.length === 0 && selectedVariant) fetchTxHistory(selectedVariant.id, 1); }}
         onClose={closeVariantModals}
-        onOpenEdit={() => selectedVariant && handleVariantEdit(selectedVariant)}
         onFormChange={(field, value) => { setVariantForm((prev) => ({ ...prev, [field]: value })); }}
         onSave={handleVariantSave}
-        onTxPageChange={(page) => { setTxPage(page); if (selectedVariant) fetchTxHistory(selectedVariant.id, page); }}
         onPOLinkClick={handlePOLinkClick}
         onPoDetailClose={() => setPoDetail(null)}
-        onUserClick={(id, name) => { setQuickViewUserId(id); setQuickViewUserName(name); }}
       />
 
       {/* Bulk edit */}

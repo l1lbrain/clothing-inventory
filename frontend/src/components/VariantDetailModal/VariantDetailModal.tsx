@@ -9,6 +9,7 @@ import styles from "./VariantDetailModal.module.css";
 interface VariantDetailModalProps {
   variantId: string | null;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
 // Định dạng tiền tệ
@@ -33,7 +34,7 @@ function formatDateTime(dateStr?: string): string {
 }
 
 // Thành phần hiển thị chi tiết biến thể
-export function VariantDetailModal({ variantId, onClose }: VariantDetailModalProps) {
+export function VariantDetailModal({ variantId, onClose, onEdit }: VariantDetailModalProps) {
   const [prevVariantId, setPrevVariantId] = useState<string | null>(null);
   const [variant, setVariant] = useState<ProductVariantDetailResponseDto | null>(null);
   const [loading, setLoading] = useState(false);
@@ -336,6 +337,11 @@ export function VariantDetailModal({ variantId, onClose }: VariantDetailModalPro
             <Button variant="secondary" onClick={onClose}>
               Đóng
             </Button>
+            {onEdit && (
+              <Button variant="secondary" icon="fi fi-rr-edit" onClick={onEdit}>
+                Chỉnh sửa
+              </Button>
+            )}
           </div>
         </>
       )}

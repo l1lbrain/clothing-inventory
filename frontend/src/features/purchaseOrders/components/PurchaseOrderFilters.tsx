@@ -1,5 +1,4 @@
 import { Select } from "../../../components/Select/Select";
-import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import {
   SupplierSearchDropdown,
   type SupplierOption,
@@ -8,9 +7,6 @@ import { DATE_PRESET_OPTIONS, type DatePreset, getDateRangeForPreset, toIsoLocal
 import styles from "./PurchaseOrderFilters.module.css";
 
 interface Props {
-  searchQuery: string;
-  onSearchChange: (v: string) => void;
-  onSearchClear: () => void;
   statusFilter: string;
   onStatusChange: (v: string) => void;
   supplierFilter: SupplierOption | null;
@@ -32,7 +28,6 @@ const STATUS_OPTIONS = [
 ];
 
 export function PurchaseOrderFilters({
-  searchQuery, onSearchChange, onSearchClear,
   statusFilter, onStatusChange,
   supplierFilter, onSupplierChange,
   datePreset, customFrom, customTo,
@@ -40,12 +35,6 @@ export function PurchaseOrderFilters({
 }: Props) {
   return (
     <div className={styles.filterBar}>
-      <SearchBox
-        placeholder="Tìm mã đơn..."
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-        onClear={onSearchClear}
-      />
 
       <div className={styles.filterGroup}>
         <Select

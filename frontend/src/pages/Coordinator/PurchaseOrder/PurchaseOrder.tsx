@@ -4,6 +4,7 @@ import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
 import { Table } from "../../../components/Table/Table";
 import { Pagination } from "../../../components/Pagination/Pagination";
 import { ConfirmDialog } from "../../../components/ConfirmDialog/ConfirmDialog";
+import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import { useToast } from "../../../components/Toast/ToastContext";
 import { SupplierDetailModal } from "../../../components/SupplierDetailModal/SupplierDetailModal";
 import { VariantDetailModal } from "../../../components/VariantDetailModal/VariantDetailModal";
@@ -311,9 +312,6 @@ export function PurchaseOrderPage() {
         </div>
 
         <PurchaseOrderFilters
-          searchQuery={searchQuery}
-          onSearchChange={(v) => { setSearchQuery(v); setCurrentPage(1); }}
-          onSearchClear={() => { setSearchQuery(""); setCurrentPage(1); }}
           statusFilter={statusFilter}
           onStatusChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}
           supplierFilter={supplierFilter}
@@ -340,7 +338,17 @@ export function PurchaseOrderPage() {
         />
 
         <Card>
-          <CardHeader title="Danh sách đơn đặt hàng" />
+          <CardHeader
+            title="Danh sách đơn đặt hàng"
+            actions={
+              <SearchBox
+                placeholder="Tìm mã đơn..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                onClear={() => { setSearchQuery(""); setCurrentPage(1); }}
+              />
+            }
+          />
           <CardBody className={styles.tableCardBody}>
             <Table columns={columns} data={orders} rowKey="id" loading={loading} emptyText="Chưa có đơn đặt hàng nào" />
             {totalElements > 0 && (

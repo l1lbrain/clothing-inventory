@@ -32,24 +32,6 @@ export function ProductTable({ products, loading, onView, onDelete, sortBy: exte
       width: "140px",
       render: (val) => <code className={styles.sku}>{val as string}</code>,
     },
-    {
-      key: "image",
-      label: "Hình ảnh",
-      width: "80px",
-      align: "center",
-      render: (val) => {
-        const imageUrl = val as string;
-        return imageUrl ? (
-          <div className={styles.imgThumb}>
-            <img src={imageUrl} alt="Sản phẩm" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius-md)" }} />
-          </div>
-        ) : (
-          <div className={styles.imgThumb}>
-            <i className="fi fi-rr-shirt" aria-hidden />
-          </div>
-        );
-      },
-    },
     { key: "name", label: buildSortHeader("Tên sản phẩm", "name") },
     { key: "categoryLabel", label: "Danh mục", width: "140px" },
     {
