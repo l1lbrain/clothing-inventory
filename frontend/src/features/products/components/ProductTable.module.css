@@ -66,8 +66,8 @@
   color: var(--color-danger);
 }
 
-.dateCell {
-  font-size: var(--font-xs);
+/* .dateCell {
+  font-size: var(--font-base);
   color: var(--color-subtext);
   white-space: nowrap;
-}
+} */

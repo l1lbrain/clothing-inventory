@@ -30,7 +30,6 @@ export function ProductTable({ products, loading, onView, onDelete, sortBy: exte
       key: "code",
       label: "Mã sản phẩm",
       width: "140px",
-      render: (val) => <code className={styles.sku}>{val as string}</code>,
     },
     { key: "name", label: buildSortHeader("Tên sản phẩm", "name") },
     { key: "categoryLabel", label: "Danh mục", width: "140px" },
@@ -68,7 +67,7 @@ export function ProductTable({ products, loading, onView, onDelete, sortBy: exte
     {
       key: "createdAt",
       label: buildSortHeader("Ngày tạo", "createdAt"),
-      width: "150px",
+      width: "130px",
       render: (val) => <span className={styles.dateCell}>{formatDateTime(val as string)}</span>,
     },
     {

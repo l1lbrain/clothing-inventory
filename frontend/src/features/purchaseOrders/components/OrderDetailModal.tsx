@@ -2,7 +2,7 @@ import type { PurchaseOrder } from "../../../types/purchaseOrder.types";
 import { Modal } from "../../../components/Modal/Modal";
 import { Button } from "../../../components/Button/Button";
 import { formatCurrency, formatDateTime } from "../../../utils/formatters";
-import { ORDER_STATUS_LABEL } from "../../../constants/statusMaps";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from "../../../constants/statusMaps";
 import styles from "./OrderDetailModal.module.css";
 
 function formatVariantName(
@@ -35,27 +35,31 @@ export function OrderDetailModal({
 }: Props) {
   if (!order) return null;
 
+  const statusColor = ORDER_STATUS_COLOR[order.status] ?? { bg: "#f3f4f6", text: "#374151" };
+
   return (
     <Modal isOpen={!!order} onClose={onClose} title="Chi tiết đơn đặt hàng" size="lg">
-      <div className={styles.detailSection}>
-        <div className={styles.detailHeader}>
+      <div className={styles.wrapper}>
+        {/* Header */}
+        <div className={styles.header}>
           <div>
-            <div className={styles.detailCode}>{order.code}</div>
-            <div className={styles.detailSupplier}>
+            <div className={styles.code}>{order.code}</div>
+            <div className={styles.supplier}>
               <button className={styles.clickableLink} onClick={() => onSupplierClick(order.supplierId)}>
                 {order.supplierName}
               </button>
             </div>
           </div>
-          <span className={[styles.badge, styles[order.status]].join(" ")}>
+          <span className={styles.badge} style={{ background: statusColor.bg, color: statusColor.text }}>
             {ORDER_STATUS_LABEL[order.status] ?? order.status}
           </span>
         </div>
 
-        <div className={styles.detailMeta}>
-          <span><i className="fi fi-rr-calendar" style={{ marginRight: 4 }} />Ngày đặt hàng: {formatDateTime(order.orderDate)}</span>
+        {/* Meta */}
+        <div className={styles.meta}>
+          <span><i className="fi fi-rr-calendar" style={{ marginRight: 4 }} />Ngày đặt: {formatDateTime(order.orderDate)}</span>
           {order.receivedDate && (
-            <span><i className="fi fi-rr-box-check" style={{ marginRight: 4 }} />Ngày nhận hàng: {formatDateTime(order.receivedDate)}</span>
+            <span><i className="fi fi-rr-box-check" style={{ marginRight: 4 }} />Ngày nhận: {formatDateTime(order.receivedDate)}</span>
           )}
           <span>
             <i className="fi fi-rr-user" style={{ marginRight: 4 }} />Người tạo:{" "}
@@ -66,43 +70,42 @@ export function OrderDetailModal({
           {order.note && <span><i className="fi fi-rr-note" style={{ marginRight: 4 }} />Ghi chú: {order.note}</span>}
         </div>
 
-        <table className={styles.readonlyTable}>
+        {/* Items table */}
+        <table className={styles.table}>
           <thead>
             <tr>
-              <th>Tên sản phẩm</th>
+              <th>Sản phẩm</th>
               <th>SKU</th>
-              <th style={{ width: 60, textAlign: "right" }}>SL</th>
-              <th style={{ width: 130, textAlign: "right" }}>Đơn giá</th>
-              <th style={{ width: 130, textAlign: "right" }}>Thành tiền</th>
+              <th style={{ textAlign: "right", width: 60 }}>SL</th>
+              <th style={{ textAlign: "right", width: 130 }}>Đơn giá</th>
+              <th style={{ textAlign: "right", width: 130 }}>Thành tiền</th>
             </tr>
           </thead>
           <tbody>
             {order.details.map((item) => (
               <tr key={item.id}>
-                <td>
-                  <div style={{ fontWeight: 500, fontSize: "0.85rem" }}>
-                    {formatVariantName(item.productName, item.option1Value, item.option2Value, item.option3Value)}
-                  </div>
-                </td>
-                <td style={{ color: "var(--color-subtext)", fontSize: "0.8rem" }}>
+                <td>{formatVariantName(item.productName, item.option1Value, item.option2Value, item.option3Value)}</td>
+                <td className={styles.skuCell}>
                   <button className={styles.clickableLink} onClick={() => onVariantClick(item.variantId)}>
                     {item.sku}
                   </button>
                 </td>
                 <td style={{ textAlign: "right" }}>{item.quantity}</td>
                 <td style={{ textAlign: "right" }}>{formatCurrency(item.unitPrice)}</td>
-                <td style={{ textAlign: "right" }} className={styles.amountCell}>{formatCurrency(item.lineTotal)}</td>
+                <td style={{ textAlign: "right" }} className={styles.totalCell}>{formatCurrency(item.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        <div className={styles.detailTotal}>
+        {/* Total */}
+        <div className={styles.total}>
           <span>Tổng tiền:</span>
-          <span className={styles.detailTotalAmount}>{formatCurrency(order.totalAmount)}</span>
+          <span className={styles.totalAmount}>{formatCurrency(order.totalAmount)}</span>
         </div>
 
-        <div className={styles.modalFooter}>
+        {/* Actions */}
+        <div className={styles.footer}>
           <Button variant="secondary" onClick={onClose}>Đóng</Button>
           {order.status !== "RECEIVED" && (
             <>

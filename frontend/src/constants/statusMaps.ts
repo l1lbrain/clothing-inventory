@@ -19,6 +19,13 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Đã huỷ",
 };
 
+export const ORDER_STATUS_COLOR: Record<string, { bg: string; text: string }> = {
+  DRAFT: { bg: "#eff6ff", text: "#1d4ed8" },
+  PENDING: { bg: "#fef3c7", text: "#d97706" },
+  RECEIVED: { bg: "#dcfce7", text: "#166534" },
+  CANCELLED: { bg: "#fee2e2", text: "#991b1b" },
+};
+
 export const ROLE_LABELS: Record<string, string> = {
   admin: "Quản trị viên",
   coordinator: "Nhân viên điều phối",
