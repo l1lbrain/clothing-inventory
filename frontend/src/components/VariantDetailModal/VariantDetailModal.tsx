@@ -3,6 +3,9 @@ import { Modal } from "../Modal/Modal";
 import { Button } from "../Button/Button";
 import { getVariantById, type ProductVariantDetailResponseDto } from "../../services/product";
 import { getTransactionsByVariantId, type InventoryTransactionDto } from "../../services/inventoryTransaction";
+import { getPurchaseOrdersPage } from "../../services/purchaseOrder";
+import type { PurchaseOrder } from "../../types/purchaseOrder.types";
+import { OrderDetailModal } from "../../features/purchaseOrders/components/OrderDetailModal";
 import { Pagination } from "../Pagination/Pagination";
 import styles from "./VariantDetailModal.module.css";
 
@@ -47,6 +50,10 @@ export function VariantDetailModal({ variantId, onClose, onEdit }: VariantDetail
   const [txPage, setTxPage] = useState(1);
   const [txTotalElements, setTxTotalElements] = useState(0);
   const [txPageSize, setTxPageSize] = useState(10);
+
+  // Trạng thái modal Chi tiết đơn đặt hàng (read-only)
+  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
+  const [orderFetching, setOrderFetching] = useState(false);
 
   if (variantId !== prevVariantId) {
     setPrevVariantId(variantId);
@@ -114,10 +121,25 @@ export function VariantDetailModal({ variantId, onClose, onEdit }: VariantDetail
     fetchTxHistory(p);
   };
 
+  // Xử lý bấm vào mã đơn đặt hàng
+  const handleOrderCodeClick = async (purchaseOrderCode: string) => {
+    try {
+      setOrderFetching(true);
+      const result = await getPurchaseOrdersPage(1, purchaseOrderCode);
+      const found = result.items.find((o) => o.code === purchaseOrderCode) ?? result.items[0] ?? null;
+      setSelectedOrder(found);
+    } catch (err) {
+      console.error("Failed to fetch purchase order:", err);
+    } finally {
+      setOrderFetching(false);
+    }
+  };
+
   const isActive = variant?.status?.toUpperCase() === "ACTIVE";
 
   return (
-    <Modal isOpen={!!variantId} onClose={onClose} title="Chi tiết phiên bản sản phẩm" size="xl">
+    <>
+      <Modal isOpen={!!variantId} onClose={onClose} title="Chi tiết phiên bản sản phẩm" size="xl">
       {loading && (
         <div style={{ padding: "32px", textAlign: "center", color: "var(--color-subtext)" }}>
           <i className="fi fi-rr-spinner" style={{ marginRight: 8 }} />
@@ -297,9 +319,14 @@ export function VariantDetailModal({ variantId, onClose, onEdit }: VariantDetail
                               {isIN && tx.purchaseOrderCode ? (
                                 <span>
                                   {tx.note?.replace(tx.purchaseOrderCode, "").trim().replace(/\s*$/, " ") || "Nhập theo đơn "}
-                                  <span style={{ color: "var(--color-primary)", fontWeight: 600, fontFamily: "monospace" }}>
+                                  <button
+                                    className={styles.poLink}
+                                    onClick={() => handleOrderCodeClick(tx.purchaseOrderCode!)}
+                                    disabled={orderFetching}
+                                    title="Xem chi tiết đơn đặt hàng"
+                                  >
                                     {tx.purchaseOrderCode}
-                                  </span>
+                                  </button>
                                 </span>
                               ) : (
                                 <span style={{ color: "var(--color-subtext)" }}>
@@ -346,5 +373,14 @@ export function VariantDetailModal({ variantId, onClose, onEdit }: VariantDetail
         </>
       )}
     </Modal>
+
+      {/* Modal Chi tiết đơn đặt hàng — read-only, mở từ lịch sử giao dịch */}
+      <OrderDetailModal
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        readOnly
+        highlightVariantId={variantId ?? undefined}
+      />
+    </>
   );
 }

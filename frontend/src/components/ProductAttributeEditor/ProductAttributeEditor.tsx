@@ -13,6 +13,8 @@ interface Props {
   tagInputs: string[];
   /** Nếu truyền vào, sẽ kiểm tra tồn kho trước khi xóa attribute/value */
   existingVariants?: Variant[];
+  /** Ẩn header nội bộ (title + nút Thêm thuộc tính) khi component cha đã tự render header riêng. Mặc định: true */
+  showHeader?: boolean;
   onAttributesChange: (attrs: ProductAttribute[]) => void;
   onTagInputsChange: (inputs: string[]) => void;
   onShowToast?: (msg: string, type: "warning" | "error" | "success") => void;
@@ -22,6 +24,7 @@ export function ProductAttributeEditor({
   attributes,
   tagInputs,
   existingVariants,
+  showHeader = true,
   onAttributesChange,
   onTagInputsChange,
   onShowToast,
@@ -136,14 +139,16 @@ export function ProductAttributeEditor({
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h4 className={styles.title}>Thuộc tính sản phẩm</h4>
-        {attributes.length < 3 && (
-          <Button variant="secondary" size="sm" icon="fi fi-rr-add" onClick={addAttribute} type="button">
-            Thêm thuộc tính
-          </Button>
-        )}
-      </div>
+      {showHeader && (
+        <div className={styles.header}>
+          <h4 className={styles.title}>Thuộc tính sản phẩm</h4>
+          {attributes.length < 3 && (
+            <Button variant="secondary" size="sm" icon="fi fi-rr-add" onClick={addAttribute} type="button">
+              Thêm thuộc tính
+            </Button>
+          )}
+        </div>
+      )}
 
       {attributes.length === 0 ? (
         <div className={styles.emptyHint}>

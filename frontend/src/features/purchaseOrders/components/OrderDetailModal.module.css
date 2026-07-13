@@ -109,3 +109,31 @@
 .clickableLink:hover {
   opacity: 0.8;
 }
+
+/* Dòng biến thể đang được xem trong VariantDetailModal */
+.highlightRow {
+  background-color: var(--color-primary-light, rgba(99, 102, 241, 0.08));
+  border-left: 3px solid var(--color-primary);
+}
+
+.highlightRow td:first-child {
+  padding-left: 9px;
+  /* bù lại border-left 3px */
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.highlightBadge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background-color: var(--color-primary);
+  color: #fff;
+  vertical-align: middle;
+  width: fit-content;
+}

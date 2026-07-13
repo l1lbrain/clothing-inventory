@@ -20,18 +20,24 @@ function formatVariantName(
 interface Props {
   order: PurchaseOrder | null;
   onClose: () => void;
-  onEdit: (order: PurchaseOrder) => void;
-  onApprove: (id: string) => void;
-  onReceive: (id: string) => void;
-  onCancel: (id: string) => void;
-  onSupplierClick: (id: string) => void;
-  onVariantClick: (id: string) => void;
-  onUserClick: (id: string, name: string) => void;
+  onEdit?: (order: PurchaseOrder) => void;
+  onApprove?: (id: string) => void;
+  onReceive?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  onSupplierClick?: (id: string) => void;
+  onVariantClick?: (id: string) => void;
+  onUserClick?: (id: string, name: string) => void;
+  /** Khi true, ẩn toàn bộ action buttons (chỉ xem) */
+  readOnly?: boolean;
+  /** variantId cần highlight trong bảng sản phẩm (khi đơn có >= 2 biến thể) */
+  highlightVariantId?: string;
 }
 
 export function OrderDetailModal({
   order, onClose, onEdit, onApprove, onReceive, onCancel,
   onSupplierClick, onVariantClick, onUserClick,
+  readOnly = false,
+  highlightVariantId,
 }: Props) {
   if (!order) return null;
 
@@ -45,9 +51,13 @@ export function OrderDetailModal({
           <div>
             <div className={styles.code}>{order.code}</div>
             <div className={styles.supplier}>
-              <button className={styles.clickableLink} onClick={() => onSupplierClick(order.supplierId)}>
-                {order.supplierName}
-              </button>
+              {onSupplierClick ? (
+                <button className={styles.clickableLink} onClick={() => onSupplierClick(order.supplierId)}>
+                  {order.supplierName}
+                </button>
+              ) : (
+                <span>{order.supplierName}</span>
+              )}
             </div>
           </div>
           <span className={styles.badge} style={{ background: statusColor.bg, color: statusColor.text }}>
@@ -63,9 +73,13 @@ export function OrderDetailModal({
           )}
           <span>
             <i className="fi fi-rr-user" style={{ marginRight: 4 }} />Người tạo:{" "}
-            <button className={styles.clickableLink} onClick={() => onUserClick(order.createdById, order.createdByName)}>
-              {order.createdByName}
-            </button>
+            {onUserClick ? (
+              <button className={styles.clickableLink} onClick={() => onUserClick(order.createdById, order.createdByName)}>
+                {order.createdByName}
+              </button>
+            ) : (
+              <span>{order.createdByName}</span>
+            )}
           </span>
           {order.note && <span><i className="fi fi-rr-note" style={{ marginRight: 4 }} />Ghi chú: {order.note}</span>}
         </div>
@@ -82,19 +96,37 @@ export function OrderDetailModal({
             </tr>
           </thead>
           <tbody>
-            {order.details.map((item) => (
-              <tr key={item.id}>
-                <td>{formatVariantName(item.productName, item.option1Value, item.option2Value, item.option3Value)}</td>
-                <td className={styles.skuCell}>
-                  <button className={styles.clickableLink} onClick={() => onVariantClick(item.variantId)}>
-                    {item.sku}
-                  </button>
-                </td>
-                <td style={{ textAlign: "right" }}>{item.quantity}</td>
-                <td style={{ textAlign: "right" }}>{formatCurrency(item.unitPrice)}</td>
-                <td style={{ textAlign: "right" }} className={styles.totalCell}>{formatCurrency(item.lineTotal)}</td>
-              </tr>
-            ))}
+            {order.details.map((item) => {
+              const isHighlighted =
+                highlightVariantId !== undefined &&
+                order.details.length >= 2 &&
+                item.variantId === highlightVariantId;
+              return (
+                <tr
+                  key={item.id}
+                  className={isHighlighted ? styles.highlightRow : undefined}
+                >
+                  <td>
+                    {isHighlighted && (
+                      <span className={styles.highlightBadge}>Đang xem</span>
+                    )}
+                    {formatVariantName(item.productName, item.option1Value, item.option2Value, item.option3Value)}
+                  </td>
+                  <td className={styles.skuCell}>
+                    {onVariantClick && !readOnly ? (
+                      <button className={styles.clickableLink} onClick={() => onVariantClick(item.variantId)}>
+                        {item.sku}
+                      </button>
+                    ) : (
+                      <span>{item.sku}</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: "right" }}>{item.quantity}</td>
+                  <td style={{ textAlign: "right" }}>{formatCurrency(item.unitPrice)}</td>
+                  <td style={{ textAlign: "right" }} className={styles.totalCell}>{formatCurrency(item.lineTotal)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
@@ -107,18 +139,18 @@ export function OrderDetailModal({
         {/* Actions */}
         <div className={styles.footer}>
           <Button variant="secondary" onClick={onClose}>Đóng</Button>
-          {order.status !== "RECEIVED" && (
+          {!readOnly && order.status !== "RECEIVED" && (
             <>
-              {(order.status === "DRAFT" || order.status === "PENDING") && (
+              {(order.status === "DRAFT" || order.status === "PENDING") && onEdit && (
                 <Button variant="secondary" icon="fi fi-rr-edit" onClick={() => onEdit(order)}>Sửa</Button>
               )}
-              {order.status === "DRAFT" && (
+              {order.status === "DRAFT" && onApprove && (
                 <Button icon="fi fi-rr-check" onClick={() => onApprove(order.id)}>Duyệt</Button>
               )}
-              {order.status === "PENDING" && (
+              {order.status === "PENDING" && onReceive && (
                 <Button icon="fi fi-rr-box-check" onClick={() => onReceive(order.id)}>Nhập hàng</Button>
               )}
-              {order.status !== "CANCELLED" && (
+              {order.status !== "CANCELLED" && onCancel && (
                 <Button variant="danger" icon="fi fi-rr-cross-circle" onClick={() => onCancel(order.id)}>Huỷ đơn</Button>
               )}
             </>

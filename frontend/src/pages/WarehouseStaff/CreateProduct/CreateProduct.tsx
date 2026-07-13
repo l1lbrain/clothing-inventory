@@ -362,6 +362,7 @@ export function CreateProduct() {
                 <ProductAttributeEditor
                   attributes={attributes}
                   tagInputs={tagInputs}
+                  showHeader={false}
                   onAttributesChange={(attrs) => {
                     setAttributes(attrs);
                     setRemovedVariantLabels(new Set());
