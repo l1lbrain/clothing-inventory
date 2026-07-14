@@ -1,0 +1,137 @@
+.form {
+  padding: var(--space-2) 0;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.label {
+  display: block;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.required {
+  color: var(--color-danger);
+}
+
+.itemsSection {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.itemsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.itemsLabel {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+}
+
+.itemsTable th {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: var(--font-xs);
+  color: var(--color-subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.itemsTable td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.itemsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lineInput {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  background: var(--color-white);
+  font-family: inherit;
+}
+
+.lineInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.removeItemBtn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-danger);
+  transition: background var(--transition);
+  font-size: 13px;
+}
+
+.removeItemBtn:hover {
+  background: var(--color-danger-light);
+  border-color: var(--color-danger);
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-4);
+}
+
+.footerSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-sm);
+  color: var(--color-subtext);
+  margin-right: auto;
+}
+
+.footerDivider {
+  margin: 0 var(--space-3);
+  color: var(--color-border);
+}
+
+.footerTotalAmount {
+  color: var(--color-primary);
+  font-weight: 700;
+}

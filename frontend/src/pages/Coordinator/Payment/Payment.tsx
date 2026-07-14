@@ -9,7 +9,6 @@ import { Input } from "../../../components/Input/Input";
 import { SearchBox } from "../../../components/SearchBox/SearchBox";
 import type { TableColumn } from "../../../types/common.types";
 import { formatCurrency, formatDateTime } from "../../../utils/formatters";
-import { useWarehouseContext } from "../../../hooks/useWarehouseContext";
 import styles from "./Payment.module.css";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,9 +28,11 @@ const METHOD_OPTIONS: { value: PaymentMethod; label: string; icon: string }[] = 
   { value: "transfer", label: "Chuyển khoản", icon: "fi fi-rr-bank" },
 ];
 
-// Trang thanh toán hóa đơn
+// Trang thanh toán hóa đơn (legacy – không dùng trong router hiện tại)
 export function Payment() {
-  const { warehouseReceipts, updatePayment } = useWarehouseContext();
+  // NOTE: Context cũ đã bị xoá. Trang này chưa được kết nối API thực.
+  const warehouseReceipts: WarehouseReceipt[] = [];
+  const updatePayment = (_id: string, _amount: number, _method: PaymentMethod) => {};
   const [selected, setSelected] = useState<WarehouseReceipt | null>(null);
   const [payMethod, setPayMethod] = useState<PaymentMethod>("transfer");
   const [payAmount, setPayAmount] = useState<string>("");

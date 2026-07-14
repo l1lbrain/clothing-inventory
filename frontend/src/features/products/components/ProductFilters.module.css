@@ -1,0 +1,13 @@
+.filtersRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dropdowns {
+  display: flex;
+  gap: 12px;
+  max-width: 480px;
+}

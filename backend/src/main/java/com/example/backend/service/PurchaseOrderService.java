@@ -202,6 +202,10 @@ public class PurchaseOrderService {
 
             variant.setQuantityOnHand(quantityAfter);
 
+            // Cập nhật totalStock của Product
+            Product product = variant.getProduct();
+            product.setTotalStock(product.getTotalStock() + detail.getQuantity());
+
             InventoryTransaction transaction = InventoryTransaction.builder()
                     .variant(variant)
                     .purchaseOrderDetail(detail)

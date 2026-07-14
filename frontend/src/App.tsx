@@ -12,7 +12,6 @@ import { Profile } from "./pages/Profile/Profile";
 import { UserManagement } from "./pages/Admin/UserManagement/UserManagement";
 import { ROUTES } from "./constants/routes";
 import { ToastProvider } from "./components/Toast/ToastProvider";
-import { WarehouseContextProvider } from "./context/WarehouseContext";
 
 const router = createBrowserRouter([
   {
@@ -69,10 +68,8 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <WarehouseContextProvider>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
-    </WarehouseContextProvider>
+    <ToastProvider>
+      <RouterProvider router={router} />
+    </ToastProvider>
   );
 }

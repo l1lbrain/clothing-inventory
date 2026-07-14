@@ -1,0 +1,135 @@
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.table th {
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: var(--font-xs);
+  color: var(--color-subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.colStt {
+  width: 48px;
+  text-align: center;
+}
+
+.colPrice {
+  width: 160px;
+  text-align: right;
+  color: var(--color-subtext);
+  white-space: nowrap;
+}
+
+.colStock {
+  width: 90px;
+  text-align: center;
+}
+
+.colActions {
+  width: 80px;
+  text-align: center;
+}
+
+.variantIndex {
+  text-align: center;
+  color: var(--color-subtext);
+  font-size: var(--font-xs);
+}
+
+.variantTag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-info-light);
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.rowEditing {
+  background-color: var(--color-info-light);
+}
+
+.priceInput {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  background: var(--color-white);
+  text-align: right;
+}
+
+.priceOverride {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.stockBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  font-size: var(--font-xs);
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.stockLow {
+  background-color: var(--color-danger-light) !important;
+  color: var(--color-danger) !important;
+}
+
+.actionBtns {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.actionBtn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background var(--transition), color var(--transition);
+  font-size: 12px;
+}
+
+.actionBtn:hover {
+  background: var(--color-hover);
+  color: var(--color-primary);
+}
+
+.actionBtnDanger:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
