@@ -57,6 +57,9 @@ public class Product {
     @Column(length = 20)
     private Status status = Status.ACTIVE;
 
+    @Column(name = "total_stock", nullable = false)
+    private Integer totalStock = 0;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariant> variants = new ArrayList<>();
 

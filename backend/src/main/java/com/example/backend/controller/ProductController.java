@@ -27,7 +27,7 @@ import java.util.Set;
 @Validated
 public class ProductController {
 
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("name", "brand", "createdAt", "updatedAt", "status", "sku", "quantityOnHand");
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("name", "brand", "createdAt", "updatedAt", "status", "sku", "quantityOnHand", "totalStock");
 
     private final ProductService productService;
 

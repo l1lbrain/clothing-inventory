@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import type { Product } from "../../../types/product.types";
 import type { TableColumn } from "../../../types/common.types";
 import { Table } from "../../../components/Table/Table";
@@ -7,7 +7,7 @@ import { formatDateTime } from "../../../utils/formatters";
 import { useTableSort } from "../../../hooks/useTableSort";
 import styles from "./ProductTable.module.css";
 
-type SortField = "name" | "brand" | "createdAt" | "updatedAt";
+type SortField = "name" | "createdAt" | "stock";
 
 interface Props {
   products: Product[];
@@ -20,10 +20,20 @@ interface Props {
 }
 
 export function ProductTable({ products, loading, onView, onDelete, sortBy: externalSortBy, onSortChange }: Props) {
+  // Giữ ref đến callback mới nhất để tránh stale closure
+  const onSortChangeCb = useRef(onSortChange);
+  useEffect(() => { onSortChangeCb.current = onSortChange; });
+  const isFirstRender = useRef(true);
+
   const { buildSortHeader, sortBy, sortDir } = useTableSort<SortField>(
     externalSortBy ?? "createdAt",
-    () => onSortChange?.(sortBy, sortDir),
   );
+
+  // Notify parent khi sort thay đổi (bỏ qua lần đầu mount)
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    onSortChangeCb.current?.(sortBy, sortDir);
+  }, [sortBy, sortDir]);
 
   const columns: TableColumn<Product>[] = useMemo(() => [
     {
@@ -35,13 +45,13 @@ export function ProductTable({ products, loading, onView, onDelete, sortBy: exte
     { key: "categoryLabel", label: "Danh mục", width: "140px" },
     {
       key: "brand",
-      label: buildSortHeader("Thương hiệu", "brand"),
+      label: "Thương hiệu",
       width: "140px",
       render: (val) => (val as string) || "—",
     },
     {
       key: "stock",
-      label: "Tồn kho",
+      label: buildSortHeader("Tồn kho", "stock"),
       align: "center",
       width: "120px",
       render: (val) => (

@@ -57,7 +57,8 @@ public class ProductService {
                 String keywordLower = "%" + keyword.toLowerCase() + "%";
                 Predicate codePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), keywordLower);
                 Predicate namePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), keywordLower);
-                predicates.add(criteriaBuilder.or(codePredicate, namePredicate));
+                Predicate brandPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("brand")), keywordLower);
+                predicates.add(criteriaBuilder.or(codePredicate, namePredicate, brandPredicate));
             }
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
@@ -220,6 +221,11 @@ public class ProductService {
                 .filter(variant -> !requestVariantIds.contains(variant.getId()))
                 .toList();
         for (ProductVariant variant : variantsToDelete) {
+            // Trừ totalStock của Product khi soft-delete variant
+            if (variant.getQuantityOnHand() != null && variant.getQuantityOnHand() > 0) {
+                Product product = variant.getProduct();
+                product.setTotalStock(Math.max(0, product.getTotalStock() - variant.getQuantityOnHand()));
+            }
             variant.setStatus(Status.DELETED);
         }
     }
@@ -342,6 +348,10 @@ public class ProductService {
             if (!quantityBefore.equals(quantityAfter)) {
                 variant.setQuantityOnHand(quantityAfter);
 
+                // Cập nhật totalStock của Product
+                Product product = variant.getProduct();
+                product.setTotalStock(product.getTotalStock() + (quantityAfter - quantityBefore));
+
                 User currentUser = getCurrentUser();
                 InventoryTransaction transaction = InventoryTransaction.builder()
                         .variant(variant)
@@ -387,6 +397,11 @@ public class ProductService {
         }
         Set<Product> affectedProducts = new HashSet<>();
         for (ProductVariant variant : variants) {
+            // Trừ totalStock của Product khi soft-delete variant
+            if (variant.getQuantityOnHand() != null && variant.getQuantityOnHand() > 0) {
+                Product product = variant.getProduct();
+                product.setTotalStock(Math.max(0, product.getTotalStock() - variant.getQuantityOnHand()));
+            }
             variant.setStatus(Status.DELETED);
             affectedProducts.add(variant.getProduct());
         }

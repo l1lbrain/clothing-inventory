@@ -53,8 +53,8 @@ export function ProductList() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const [sortBy] = useState<"name" | "brand" | "createdAt" | "updatedAt">("createdAt");
-  const [sortDir] = useState<"asc" | "desc">("desc");
+  const [sortBy, setSortBy] = useState<"name" | "createdAt" | "stock">("createdAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -121,7 +121,8 @@ export function ProductList() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    getProductsPage(currentPage, debouncedQuery.trim() || undefined, statusFilter || undefined, sortBy, sortDir)
+    const backendSortBy = sortBy === "stock" ? "totalStock" : sortBy;
+    getProductsPage(currentPage, debouncedQuery.trim() || undefined, statusFilter || undefined, backendSortBy, sortDir)
       .then((data) => {
         if (!active) return;
         setProducts(data.items);
@@ -361,7 +362,7 @@ export function ProductList() {
             title="Tất cả sản phẩm"
             actions={
               <SearchBox
-                placeholder="Tìm SKU, tên sản phẩm..."
+                placeholder="Tìm SKU, tên sản phẩm, thương hiệu..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 onClear={() => { setSearchQuery(""); setCurrentPage(1); }}
@@ -372,8 +373,14 @@ export function ProductList() {
             <ProductTable
               products={displayProducts}
               loading={loading}
+              sortBy={sortBy}
               onView={openDetail}
               onDelete={(id) => setDeleteProductId(id)}
+              onSortChange={(field, dir) => {
+                setSortBy(field);
+                setSortDir(dir);
+                setCurrentPage(1);
+              }}
             />
             {totalElements > 0 && (
               <div className={styles.paginationWrap}>
