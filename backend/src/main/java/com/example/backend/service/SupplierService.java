@@ -62,13 +62,16 @@ public class SupplierService {
 
     @Transactional
     public SupplierResponseDto createSupplier(SupplierRequestDto request) {
-        if (StringUtils.hasText(request.getEmail()) && supplierRepository.existsByEmail(request.getEmail())) {
+        if (StringUtils.hasText(request.getEmail())
+                && supplierRepository.existsByEmailAndStatus(request.getEmail(), Status.ACTIVE)) {
             throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_EMAIL);
         }
-        if (StringUtils.hasText(request.getPhone()) && supplierRepository.existsByPhone(request.getPhone())) {
+        if (StringUtils.hasText(request.getPhone())
+                && supplierRepository.existsByPhoneAndStatus(request.getPhone(), Status.ACTIVE)) {
             throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_PHONE);
         }
-        if (StringUtils.hasText(request.getTaxCode()) && supplierRepository.existsByTaxCode(request.getTaxCode())) {
+        if (StringUtils.hasText(request.getTaxCode())
+                && supplierRepository.existsByTaxCodeAndStatus(request.getTaxCode(), Status.ACTIVE)) {
             throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_TAX_CODE);
         }
         Supplier supplier = supplierMapper.toEntity(request);
@@ -89,13 +92,13 @@ public class SupplierService {
             existingSupplier.setContactPerson(request.getContactPerson());
         }
         if (request.getPhone() != null) {
-            if (supplierRepository.existsByPhone(request.getPhone()) && !request.getPhone().equals(existingSupplier.getPhone())) {
+            if (supplierRepository.existsByPhoneAndStatusAndIdNot(request.getPhone(), Status.ACTIVE, existingSupplier.getId())) {
                 throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_PHONE);
             }
             existingSupplier.setPhone(request.getPhone());
         }
         if (request.getEmail() != null) {
-            if (supplierRepository.existsByEmail(request.getEmail()) && !request.getEmail().equals(existingSupplier.getEmail())) {
+            if (supplierRepository.existsByEmailAndStatusAndIdNot(request.getEmail(), Status.ACTIVE, existingSupplier.getId())) {
                 throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_EMAIL);
             }
             existingSupplier.setEmail(request.getEmail());
@@ -104,7 +107,7 @@ public class SupplierService {
             existingSupplier.setAddress(request.getAddress());
         }
         if (request.getTaxCode() != null) {
-            if (supplierRepository.existsByTaxCode(request.getTaxCode()) && !request.getTaxCode().equals(existingSupplier.getTaxCode())) {
+            if (supplierRepository.existsByTaxCodeAndStatusAndIdNot(request.getTaxCode(), Status.ACTIVE, existingSupplier.getId())) {
                 throw new InvalidException(ErrorCode.CONFLICT_SUPPLIER_TAX_CODE);
             }
             existingSupplier.setTaxCode(request.getTaxCode());
