@@ -58,6 +58,7 @@ public class Product {
     private Status status = Status.ACTIVE;
 
     @Column(name = "total_stock", nullable = false)
+    @Builder.Default
     private Integer totalStock = 0;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)

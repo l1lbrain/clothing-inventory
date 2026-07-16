@@ -1,6 +1,7 @@
 package com.example.backend.repository;
 
 import com.example.backend.model.Supplier;
+import com.example.backend.model.enums.Status;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -14,11 +15,14 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long>, JpaSp
 
     boolean existsByCode(String code);
 
-    boolean existsByEmail(String email);
+    boolean existsByEmailAndStatus(String email, Status status);
+    boolean existsByEmailAndStatusAndIdNot(String email, Status status, Long id);
 
-    boolean existsByPhone(String phone);
+    boolean existsByPhoneAndStatus(String phone, Status status);
+    boolean existsByPhoneAndStatusAndIdNot(String phone, Status status, Long id);
 
-    boolean existsByTaxCode(String taxCode);
+    boolean existsByTaxCodeAndStatus(String taxCode, Status status);
+    boolean existsByTaxCodeAndStatusAndIdNot(String taxCode, Status status, Long id);
 
     @Query("SELECT COUNT(s) FROM Supplier s")
     Long sumAllSupplier();

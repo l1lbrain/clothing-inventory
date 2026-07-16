@@ -6,7 +6,6 @@ import {
   type ProductUpdatePayload, updateVariant, type VariantUpdatePayload,
   getCategories, type CategoryResponseDto,
 } from "../../../services/product";
-import { getTransactionsByVariantId, type InventoryTransactionDto } from "../../../services/inventoryTransaction";
 import type { PurchaseOrder } from "../../../types/purchaseOrder.types";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
 import { Pagination } from "../../../components/Pagination/Pagination";
@@ -65,6 +64,7 @@ export function ProductList() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [deleteProductHasTransactions, setDeleteProductHasTransactions] = useState(false);
 
   // Product edit form
   const [form, setForm] = useState<ProductForm>({ code: "", sku: "", name: "", category: "", unit: "Cái", importPrice: "", salePrice: "", description: "", brand: "", status: "ACTIVE" });
@@ -80,9 +80,10 @@ export function ProductList() {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [isVariantEditOpen, setIsVariantEditOpen] = useState(false);
   const [deleteVariantId, setDeleteVariantId] = useState<string | null>(null);
+  const [deleteVariantHasTransactions, setDeleteVariantHasTransactions] = useState(false);
+  const [bulkDeleteHasTransactions, setBulkDeleteHasTransactions] = useState(false);
   const [variantForm, setVariantForm] = useState<VariantFormType>({ sku: "", importPrice: "", salePrice: "", option1Value: "", option2Value: "", option3Value: "", stock: "", note: "", adjustReason: "", status: "ACTIVE" });
   const [variantErrors, setVariantErrors] = useState<Record<string, string>>({});
-  const [activeVariantTab, setActiveVariantTab] = useState<"info" | "history">("info");
 
   // Bulk ops
   const [checkedVariantIds, setCheckedVariantIds] = useState<Set<string>>(new Set());
@@ -90,13 +91,6 @@ export function ProductList() {
   const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
   const [bulkForm, setBulkForm] = useState({ importPrice: "", salePrice: "", status: "" });
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
-
-  // Transaction history
-  const [txHistory, setTxHistory] = useState<InventoryTransactionDto[]>([]);
-  const [txPage, setTxPage] = useState(1);
-  const [txTotalElements, setTxTotalElements] = useState(0);
-  const [txPageSize, setTxPageSize] = useState(10);
-  const [txLoading, setTxLoading] = useState(false);
 
   // PO detail
   const [poDetail, setPoDetail] = useState<PurchaseOrder | null>(null);
@@ -227,11 +221,16 @@ export function ProductList() {
 
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return;
-    const target = products.find((p) => p.id === deleteProductId);
-    if (target?.variants.some((v) => v.hasTransactions)) { showToast("Không thể xóa vì đã tồn tại hóa đơn nhập hàng!", "warning"); setDeleteProductId(null); return; }
     try { await deleteProduct(deleteProductId); showToast("Đã xóa sản phẩm", "success"); if (selectedProduct?.id === deleteProductId) setSelectedProduct(null); triggerRefresh(); }
     catch { showToast("Xóa sản phẩm thất bại", "error"); }
-    finally { setDeleteProductId(null); }
+    finally { setDeleteProductId(null); setDeleteProductHasTransactions(false); }
+  };
+
+  const openDeleteProductDialog = (productId: string) => {
+    const target = products.find((p) => p.id === productId);
+    const hasTransactions = target?.variants.some((v) => v.hasTransactions) ?? false;
+    setDeleteProductHasTransactions(hasTransactions);
+    setDeleteProductId(productId);
   };
 
   // ─── Handlers: Variant ────────────────────────────────────────────────────
@@ -264,20 +263,33 @@ export function ProductList() {
 
   const closeVariantModals = () => {
     setIsVariantEditOpen(false); setSelectedVariant(null); setVariantErrors({});
-    setActiveVariantTab("info"); setTxHistory([]); setTxPage(1); setTxTotalElements(0);
   };
 
   const handleDeleteVariant = async () => {
     if (!deleteVariantId) return;
     try { await deleteVariant(deleteVariantId); setSelectedProduct((prev) => prev ? { ...prev, variants: prev.variants.filter((v) => v.id !== deleteVariantId) } : null); showToast("Xóa biến thể thành công!", "success"); triggerRefresh(); }
     catch { showToast("Xóa phiên bản thất bại", "error"); }
-    finally { setDeleteVariantId(null); }
+    finally { setDeleteVariantId(null); setDeleteVariantHasTransactions(false); }
+  };
+
+  const openDeleteVariantDialog = (variantId: string) => {
+    const variant = selectedProduct?.variants.find((v) => v.id === variantId);
+    setDeleteVariantHasTransactions(variant?.hasTransactions ?? false);
+    setDeleteVariantId(variantId);
   };
 
   const handleBulkDelete = async () => {
     try { await deleteVariants([...checkedVariantIds]); setSelectedProduct((prev) => prev ? { ...prev, variants: prev.variants.filter((v) => !checkedVariantIds.has(v.id)) } : null); showToast(`Đã xóa thành công ${checkedVariantIds.size} phiên bản!`, "success"); setCheckedVariantIds(new Set()); triggerRefresh(); }
     catch { showToast("Xóa phiên bản thất bại", "error"); }
-    finally { setIsBulkDeleteConfirmOpen(false); }
+    finally { setIsBulkDeleteConfirmOpen(false); setBulkDeleteHasTransactions(false); }
+  };
+
+  const openBulkDeleteDialog = () => {
+    const anyHasTransactions = selectedProduct?.variants.some(
+      (v) => checkedVariantIds.has(v.id) && v.hasTransactions
+    ) ?? false;
+    setBulkDeleteHasTransactions(anyHasTransactions);
+    setIsBulkDeleteConfirmOpen(true);
   };
 
   const handleBulkSave = async () => {
@@ -303,15 +315,6 @@ export function ProductList() {
       showToast(`Đã cập nhật ${checkedVariantIds.size} phiên bản!`, "success");
       setIsBulkEditOpen(false); setCheckedVariantIds(new Set());
     } catch { showToast("Cập nhật giá hàng loạt thất bại", "error"); }
-  };
-
-  const fetchTxHistory = async (variantId: string, page: number) => {
-    try {
-      setTxLoading(true);
-      const result = await getTransactionsByVariantId(variantId, page);
-      setTxHistory(result.items); setTxTotalElements(result.totalElements); setTxPageSize(result.pageSize);
-    } catch { showToast("Không thể tải lịch sử giao dịch!", "error"); }
-    finally { setTxLoading(false); }
   };
 
   const handlePOLinkClick = async (poCode: string) => {
@@ -375,7 +378,7 @@ export function ProductList() {
               loading={loading}
               sortBy={sortBy}
               onView={openDetail}
-              onDelete={(id) => setDeleteProductId(id)}
+              onDelete={(id) => openDeleteProductDialog(id)}
               onSortChange={(field, dir) => {
                 setSortBy(field);
                 setSortDir(dir);
@@ -429,7 +432,7 @@ export function ProductList() {
                     <span className={styles.bulkCount}>{checkedVariantIds.size} đã chọn</span>
                     <div style={{ display: "flex", gap: "8px" }}>
                       <Button size="sm" icon="fi fi-rr-edit" onClick={() => { setBulkForm({ importPrice: "", salePrice: "", status: "" }); setBulkErrors({}); setIsBulkEditOpen(true); }}>Chỉnh sửa hàng loạt</Button>
-                      <Button size="sm" variant="danger" icon="fi fi-rr-trash" onClick={() => setIsBulkDeleteConfirmOpen(true)}>Xóa hàng loạt</Button>
+                      <Button size="sm" variant="danger" icon="fi fi-rr-trash" onClick={() => openBulkDeleteDialog()}>Xóa hàng loạt</Button>
                     </div>
                   </div>
                 </div>
@@ -473,7 +476,7 @@ export function ProductList() {
                           <td style={{ textAlign: "center" }}>
                             <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
                               <Button variant="ghost" size="sm" icon="fi fi-rr-eye" onClick={() => setSelectedVariant(v)}>Xem</Button>
-                              <Button variant="danger" size="sm" icon="fi fi-rr-trash" onClick={(e) => { e.stopPropagation(); if (v.status?.toUpperCase() !== "ACTIVE") showToast("Sản phẩm đã ngừng bán!", "error"); else setDeleteVariantId(v.id); }}>Xóa</Button>
+                              <Button variant="danger" size="sm" icon="fi fi-rr-trash" onClick={(e) => { e.stopPropagation(); if (v.status?.toUpperCase() !== "ACTIVE") showToast("Sản phẩm đã ngừng bán!", "error"); else openDeleteVariantDialog(v.id); }}>Xóa</Button>
                             </div>
                           </td>
                         </tr>
@@ -568,9 +571,42 @@ export function ProductList() {
       />
 
       {/* Confirm dialogs */}
-      <ConfirmDialog isOpen={!!deleteProductId} title="Xóa sản phẩm" message={`Bạn có chắc chắn muốn xóa sản phẩm "${products.find((p) => p.id === deleteProductId)?.name ?? ""}"? Hành động này không thể hoàn tác.`} confirmLabel="Xóa" onConfirm={handleDeleteProduct} onCancel={() => setDeleteProductId(null)} />
-      <ConfirmDialog isOpen={!!deleteVariantId} title="Xóa phiên bản" message={`Bạn có chắc chắn muốn xóa phiên bản "${selectedProduct?.variants.find((v) => v.id === deleteVariantId)?.sku ?? ""}"?`} confirmLabel="Xóa" onConfirm={handleDeleteVariant} onCancel={() => setDeleteVariantId(null)} />
-      <ConfirmDialog isOpen={isBulkDeleteConfirmOpen} title="Xóa hàng loạt phiên bản" message={`Bạn có chắc chắn muốn xóa ${checkedVariantIds.size} phiên bản đã chọn?`} confirmLabel="Xóa" onConfirm={handleBulkDelete} onCancel={() => setIsBulkDeleteConfirmOpen(false)} />
+      <ConfirmDialog
+        isOpen={!!deleteProductId}
+        title="Xóa sản phẩm"
+        message={
+          deleteProductHasTransactions
+            ? `Sản phẩm "${products.find((p) => p.id === deleteProductId)?.name ?? ""}" đã có lịch sử nhập kho. Sau khi xóa sẽ bị ẩn khỏi danh sách, nhưng lịch sử giao dịch vẫn được bảo lưu đầy đủ. Bạn có chắc chắn muốn tiếp tục?`
+            : `Bạn có chắc chắn muốn xóa sản phẩm "${products.find((p) => p.id === deleteProductId)?.name ?? ""}"? Hành động này không thể hoàn tác.`
+        }
+        confirmLabel="Xóa"
+        onConfirm={handleDeleteProduct}
+        onCancel={() => { setDeleteProductId(null); setDeleteProductHasTransactions(false); }}
+      />
+      <ConfirmDialog
+        isOpen={!!deleteVariantId}
+        title="Xóa phiên bản"
+        message={
+          deleteVariantHasTransactions
+            ? `Phiên bản "${selectedProduct?.variants.find((v) => v.id === deleteVariantId)?.sku ?? ""}" đã có lịch sử nhập kho. Sau khi xóa sẽ bị ẩn khỏi danh sách, nhưng lịch sử giao dịch vẫn được bảo lưu đầy đủ. Bạn có chắc chắn muốn tiếp tục?`
+            : `Bạn có chắc chắn muốn xóa phiên bản "${selectedProduct?.variants.find((v) => v.id === deleteVariantId)?.sku ?? ""}"?`
+        }
+        confirmLabel="Xóa"
+        onConfirm={handleDeleteVariant}
+        onCancel={() => { setDeleteVariantId(null); setDeleteVariantHasTransactions(false); }}
+      />
+      <ConfirmDialog
+        isOpen={isBulkDeleteConfirmOpen}
+        title="Xóa hàng loạt phiên bản"
+        message={
+          bulkDeleteHasTransactions
+            ? `Một số phiên bản trong ${checkedVariantIds.size} phiên bản đã chọn đã có lịch sử nhập kho. Sau khi xóa sẽ bị ẩn khỏi danh sách, nhưng lịch sử giao dịch vẫn được bảo lưu đầy đủ. Bạn có chắc chắn muốn tiếp tục?`
+            : `Bạn có chắc chắn muốn xóa ${checkedVariantIds.size} phiên bản đã chọn?`
+        }
+        confirmLabel="Xóa"
+        onConfirm={handleBulkDelete}
+        onCancel={() => { setIsBulkDeleteConfirmOpen(false); setBulkDeleteHasTransactions(false); }}
+      />
 
       <UserDetailModal
         userId={quickViewUserId}
