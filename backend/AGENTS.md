@@ -2,238 +2,56 @@
 
 ## Scope and Source of Truth
 
-These instructions apply to files under `backend/`.
+These rules apply to `backend/`. The backend uses Java 17 and Spring Boot; `pom.xml`, `application.properties`, security configuration, and existing tests are the source of truth for infrastructure behavior.
 
-- The backend uses Java 17 and Spring Boot.
-- The current Spring Boot parent declared in `pom.xml` is the source of truth and is currently a stable `3.5.15` release.
-- Do not reintroduce `-SNAPSHOT` versions or Spring snapshot repositories unless the task explicitly requires snapshot testing.
-- Use the Maven wrapper committed in this module.
-- Inspect `pom.xml`, `application.properties`, security configuration, and existing tests before changing infrastructure behavior.
+- Use the committed Maven wrapper.
+- Do not add or restore Spring snapshot repositories or snapshot framework dependencies unless snapshot testing is explicitly requested. This does not restrict the project's own Maven artifact version.
+- Inspect affected configuration and tests before changing dependencies, persistence, security, or application behavior.
 
-## Backend Structure
+## Structure and Layers
 
-Production code is under:
+Production code is under `src/main/java/com/example/backend`; configuration is under `src/main/resources`; tests belong under `src/test/java` and should mirror production packages where practical.
 
-```text
-backend/src/main/java/com/example/backend
-```
+Existing packages include `config`, `controller`, `service`, `repository`, `model`, `dto`, `mapper`, `security`, `exception`, and `util`. Follow current structure rather than creating a competing architecture.
 
-The project uses packages such as:
+- Controllers handle HTTP parsing/validation and delegate business rules.
+- Services own business logic, orchestration, and deliberate transaction boundaries.
+- Repositories own persistence operations; avoid unnecessary loading and N+1 queries.
+- Use DTOs and existing MapStruct mappers at API boundaries; do not expose JPA entities directly when a DTO pattern exists.
 
-- `controller`
-- `service`
-- `repository`
-- `model`
-- `dto`
-- `mapper`
-- `security`
+## API, Validation, and Mapping
 
-Configuration is under:
+- The global response envelope is `FormatMessageResponseDto<T>`, applied by `GlobalExceptionHandler`. Treat its JSON shape, status code, and error messages as API-contract behavior.
+- Use Jakarta Bean Validation and preserve existing validation/error conventions.
+- Keep request and response DTOs separate when their responsibilities differ. Treat JSON names, enum values, nullable fields, and writable fields as contract decisions.
+- Reuse MapStruct and Lombok patterns already present. Do not edit generated output under `target/`; update relevant mapper or service tests when mapped fields change.
 
-```text
-backend/src/main/resources
-```
+## Persistence, Security, and Redis
 
-Tests belong under:
+- The project has no declared Flyway or Liquibase dependency. Follow the current schema-management approach; do not introduce a migration framework or destructive schema/data change without an explicit request.
+- Prefer backward-compatible schema changes. Document required manual SQL and execution order when schema work cannot be automated.
+- Do not disable `spring.jpa.open-in-view` merely to hide a warning. Fetch required data within a service transaction and do not serialize bidirectional entities directly.
+- Preserve the current Spring Security and JWT flow, including role, permission, and ownership checks. Inspect existing code before deciding whether OAuth2 Resource Server or Auth0 Java JWT owns token creation or verification.
+- Before changing Redis behavior, inspect all readers and writers. Preserve key names, serialization, TTL, invalidation, and session/token-revocation semantics.
 
-```text
-backend/src/test/java
-```
+## Configuration and Dependencies
 
-Mirror production package structure in tests. Follow the current repository structure if packages have evolved.
+- `application.properties` imports extensionless `.env` files as Java Properties for runs from either `backend/` or the repository root. Preserve this mechanism unless configuration loading is the task; do not add a dotenv library for it.
+- Treat `.env` files as untracked local configuration. Add required variables to setup documentation with safe placeholders; never place real secrets in tracked configuration, fixtures, logs, or documentation.
+- Let the Spring Boot parent manage dependency versions where possible. Keep explicit dependency versions aligned with `pom.xml` and explain any new production dependency.
 
-## Current Backend Stack
+## Testing and Commands
 
-Reuse the existing stack before adding overlapping libraries:
+- Add focused, deterministic tests for changed behavior. Use unit or slice tests when sufficient; use full-context tests when integration is the subject under test.
+- Cover relevant success, validation, authorization, not-found, and edge cases. Do not use production services, credentials, or data in tests.
 
-- Spring Web
-- Spring Data JPA
-- Spring Security
-- Spring OAuth2 Resource Server
-- MySQL Connector/J
-- Spring Data Redis
-- Jakarta Bean Validation
-- Auth0 Java JWT
-- Lombok
-- MapStruct
-- JUnit 5 and Spring Boot Test
-- Spring Security Test
-
-Do not replace an existing framework mechanism with another library without a task-specific reason.
-
-## Java Style and Naming
-
-- Use four-space indentation.
-- Classes, records, enums, and interfaces use `PascalCase`.
-- Methods, fields, parameters, and local variables use `camelCase`.
-- Constants use the existing project convention, normally `UPPER_SNAKE_CASE`.
-- Preserve established suffixes such as `Controller`, `Service`, `Repository`, `RequestDto`, `ResponseDto`, `Mapper`, `Config`, and `Exception`.
-- Follow existing package naming and visibility conventions.
-- Prefer focused classes and methods over large multi-purpose implementations.
-- Follow existing constructor-injection patterns; do not introduce field injection into new code.
-- Keep public APIs documented when their behavior is not obvious from names and types.
-
-## Layer Responsibilities
-
-### Controllers
-
-- Keep controllers focused on HTTP concerns.
-- Parse and validate requests.
-- Delegate business logic to services.
-- Return the project’s established response and error shapes.
-- Do not place repository queries or complex business rules directly in controllers.
-
-### Services
-
-- Keep business rules, orchestration, and transaction boundaries in services.
-- Reuse existing service abstractions instead of creating parallel pathways.
-- Apply transactions deliberately and consistently with existing patterns.
-- Do not perform slow external work inside a database transaction unless necessary.
-
-### Repositories
-
-- Keep persistence operations in repositories.
-- Prefer clear derived queries or explicit JPQL/native queries consistent with existing code.
-- Avoid loading more data than required.
-- Check query count and relationship loading when a change may introduce N+1 behavior.
-- Do not move business decisions into repository queries merely to reduce service code.
-
-## DTOs, Validation, and API Boundaries
-
-- Use DTOs at API boundaries according to existing project patterns.
-- Do not expose persistence entities directly when the current codebase uses DTO mapping.
-- Use Jakarta Bean Validation for request constraints.
-- Preserve existing validation message and error-response conventions.
-- Validate untrusted identifiers and ownership at the service/security boundary.
-- Keep request DTOs and response DTOs separate when their responsibilities differ.
-- Avoid silently making fields nullable, optional, or writable.
-- Treat JSON property names and enum values as part of the API contract.
-
-## Mapping and Generated Code
-
-- Reuse existing MapStruct mappers.
-- Do not hand-write duplicate mapping logic when an existing mapper should own it.
-- Do not edit generated MapStruct output under `target/`.
-- Keep Lombok usage consistent with neighboring code.
-- Do not mix generated and handwritten accessors or constructors in a way that creates ambiguous behavior.
-- When changing mapped fields, update mapper tests or relevant service tests.
-
-## Persistence and Schema Changes
-
-- The current `pom.xml` does not declare Flyway or Liquibase.
-- Do not assume a migration framework exists.
-- Do not silently introduce a migration framework unless explicitly requested.
-- Follow the repository’s current schema-management approach.
-- Do not destructively drop or alter tables, columns, indexes, or stored data unless the task explicitly requires it.
-- Prefer backward-compatible schema changes where practical.
-- Document required manual SQL and execution order when a schema change cannot be automated.
-- Do not use production database credentials or data in tests.
-- Preserve data integrity with appropriate validation, constraints, and transaction handling.
-
-## JPA and Open-in-View
-
-- Do not change `spring.jpa.open-in-view` solely to silence a warning.
-- Before disabling open-in-view, verify DTO mapping, transaction boundaries, lazy relationships, and all affected request flows.
-- Fetch required data inside the service transaction rather than relying on accidental lazy loading during response serialization.
-- Avoid serializing bidirectional entity relationships directly.
-
-## Security and JWT
-
-- Follow the existing Spring Security configuration and authentication flow.
-- The project includes OAuth2 Resource Server support and Auth0 Java JWT; inspect the current code before deciding which component owns token creation or verification.
-- Do not create a second competing authentication path.
-- Do not bypass authorization checks to fix a failing endpoint.
-- Preserve role, permission, and ownership checks.
-- Validate token claims, expiration, issuer, audience, and signing configuration according to existing project behavior.
-- Never hard-code secrets or include real tokens in source, tests, logs, or documentation.
-- Use Spring Security Test for protected endpoints and authorization regressions.
-
-## Redis
-
-- Inspect all readers and writers before changing Redis keys or values.
-- Preserve established key naming, serialization, TTL, invalidation, and namespace behavior.
-- Avoid unbounded keys or collections.
-- Do not silently change cache semantics, session behavior, or token revocation behavior.
-- Test fallback behavior when Redis is unavailable if the affected feature is expected to degrade gracefully.
-
-## Configuration and `.env`
-
-Spring Boot explicitly imports extensionless `.env` files as Java Properties:
-
-```properties
-spring.config.import=optional:file:.env[.properties],optional:file:backend/.env[.properties]
-```
-
-- Preserve this mechanism unless configuration loading itself is the task.
-- Do not add a dotenv library merely to load the existing backend `.env`.
-- The two paths support running from `backend/` and from the repository root.
-- Treat `.env` files as untracked local configuration.
-- Keep safe, non-secret defaults in tracked configuration where appropriate.
-- When adding a required variable, update an existing example environment file or setup documentation with a safe placeholder.
-- Never place secrets in `application.properties`, test fixtures, or committed example values.
-
-## Dependency Management
-
-- Let the Spring Boot parent manage dependency versions when possible.
-- Do not add explicit versions to managed dependencies without a demonstrated need.
-- Keep explicit versions, such as MapStruct or Auth0 Java JWT, aligned with the existing project unless the task is an upgrade.
-- Do not upgrade Spring Boot, Spring Security, Hibernate, Jackson, MapStruct, Lombok, or other unrelated libraries as part of a normal feature or bug fix.
-- Do not restore snapshot repositories after the project has moved to stable releases.
-- Explain any new production dependency and why the existing stack was insufficient.
-
-## Testing
-
-Backend tests use JUnit 5, Spring Boot Test, and Spring Security Test.
-
-- Name tests according to the existing convention.
-- Mirror production packages under `backend/src/test/java`.
-- Add focused tests for changed behavior and regressions.
-- Prefer unit or slice tests when they provide sufficient confidence.
-- Use full-context tests when integration across configuration or layers is what must be verified.
-- Cover success, validation failure, authorization failure, not-found behavior, and important edge cases as relevant.
-- Keep tests deterministic.
-- Do not depend on production services or production credentials.
-- Do not weaken assertions merely to make a test pass.
-
-## Backend Commands
-
-Run from `backend/`.
-
-### Windows PowerShell
+Run from `backend/`:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
 .\mvnw.cmd test
 .\mvnw.cmd clean package
 ```
 
-Prefer PowerShell and `mvnw.cmd` on Windows. The Unix wrapper may fail in Git Bash while downloading Maven even when the project is valid.
+On macOS/Linux, use `./mvnw test` and `./mvnw clean package`. On Windows, prefer PowerShell and `mvnw.cmd`. Run `clean package` when dependencies, build/application/security configuration, persistence, annotation processing, or packaging changes.
 
-### macOS/Linux
-
-```bash
-./mvnw spring-boot:run
-./mvnw test
-./mvnw clean package
-```
-
-Use `clean package` for dependency, build, configuration, security, persistence, annotation-processing, or packaging changes.
-
-## Warning Handling
-
-- Do not change application behavior solely to hide a startup or test warning.
-- Treat the JPA open-in-view warning as an architectural review item, not an automatic configuration change.
-- Treat Mockito or JVM dynamic-agent warnings as compatibility warnings unless they actually fail tests.
-- Report relevant warnings when they create future risk, but keep the requested task scoped.
-
-## Backend Completion Checklist
-
-Before finishing a backend task:
-
-- Confirm the controller, service, repository, DTO, mapper, security, and configuration layers affected by the change.
-- Confirm API compatibility or explicitly report intentional changes.
-- Run relevant focused tests.
-- Normally run the full backend test suite.
-- Run `clean package` when required by the change category.
-- Check that no secret, generated file, or unrelated dependency change entered the diff.
-- Report any infrastructure requirement that prevented full verification.
+Before finishing, check API compatibility, run relevant tests (normally the full backend suite), and confirm no generated file, secret, or unrelated dependency change entered the diff. Treat startup/test warnings as review signals; do not change behavior solely to hide them.
