@@ -54,6 +54,7 @@ API trả JSON theo response envelope chuẩn `FormatMessageResponseDto<T>`; cli
 - React 19, TypeScript và Vite 8
 - React Router DOM v7 với `createBrowserRouter`
 - Redux Toolkit, React Redux và RTK Query
+- Vitest và jsdom cho kiểm thử frontend
 - CSS Modules cho style cục bộ; `src/index.css` chứa reset và design tokens dùng chung
 - Native `fetch` qua wrapper `apiFetch`
 
@@ -255,6 +256,7 @@ Backend, từ `backend/`:
 Frontend, từ `frontend/`:
 
 ```bash
+npm run test
 npm run lint
 npm run build
 ```
