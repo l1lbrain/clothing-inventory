@@ -9,10 +9,6 @@ export interface ApiResponse<T> {
 
 export type Status = "active" | "inactive";
 
-export type PaymentStatus = "paid" | "partial" | "unpaid";
-
-export type PaymentMethod = "cash" | "transfer" | "debt";
-
 export interface PaginationState {
   page: number;
   pageSize: number;

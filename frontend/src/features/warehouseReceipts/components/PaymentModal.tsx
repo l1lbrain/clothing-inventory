@@ -39,12 +39,12 @@ export function PaymentModal({ receipt, onClose, onSuccess, onUserClick }: Props
   const { showToast } = useToast();
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [loadingMethods, setLoadingMethods] = useState(false);
+  const [loadingMethods, setLoadingMethods] = useState(true);
   const [history, setHistory] = useState<PaymentRecord[]>([]);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyPageSize, setHistoryPageSize] = useState(10);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [totalPaid, setTotalPaid] = useState<number | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
 
@@ -59,7 +59,6 @@ export function PaymentModal({ receipt, onClose, onSuccess, onUserClick }: Props
   const effectiveTotalPaid = totalPaid !== null ? totalPaid : 0;
 
   useEffect(() => {
-    setLoadingMethods(true);
     getPaymentMethods()
       .then((methods) => setPaymentMethods(methods.filter((m) => m.status === "ACTIVE")))
       .catch(() => showToast("Không thể tải danh sách phương thức thanh toán!", "error"))
@@ -68,7 +67,6 @@ export function PaymentModal({ receipt, onClose, onSuccess, onUserClick }: Props
 
   const fetchHistory = useCallback(async (page: number) => {
     try {
-      setLoadingHistory(true);
       const data = await getPaymentHistoryByPurchaseOrderId(Number(receipt.id), page);
       setHistory(data.items);
       setHistoryTotal(data.totalElements);
@@ -88,7 +86,9 @@ export function PaymentModal({ receipt, onClose, onSuccess, onUserClick }: Props
   }, [receipt.id, receipt.totalAmount, showToast]);
 
   useEffect(() => {
-    fetchHistory(historyPage);
+    queueMicrotask(() => {
+      void fetchHistory(historyPage);
+    });
   }, [fetchHistory, historyPage]);
 
   function validate(): boolean {
@@ -122,6 +122,7 @@ export function PaymentModal({ receipt, onClose, onSuccess, onUserClick }: Props
       setAmountDisplay("");
       setErrors({});
       setHistoryPage(1);
+      setLoadingHistory(true);
       await fetchHistory(1);
       onSuccess({ ...receipt, paymentStatus: result.remainingAmount === 0 ? "PAID" : "PARTIALLY_PAID" });
     } catch (err) {
@@ -271,7 +272,13 @@ export function PaymentModal({ receipt, onClose, onSuccess, onUserClick }: Props
         <Table<PaymentRecord> columns={historyColumns} data={history} rowKey="id" loading={loadingHistory} emptyText="Chưa có giao dịch nào" />
         {historyTotal > historyPageSize && (
           <div style={{ marginTop: "var(--space-3)" }}>
-            <Pagination pagination={{ page: historyPage, pageSize: historyPageSize, total: historyTotal }} onPageChange={setHistoryPage} />
+            <Pagination
+              pagination={{ page: historyPage, pageSize: historyPageSize, total: historyTotal }}
+              onPageChange={(page) => {
+                setLoadingHistory(true);
+                setHistoryPage(page);
+              }}
+            />
           </div>
         )}
       </div>
