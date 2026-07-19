@@ -45,11 +45,12 @@ Follow the existing organization; do not create a competing folder architecture.
 
 - Prefer existing browser, React, TypeScript, Redux Toolkit, React Router, and CSS capabilities before adding a package. Keep dependency changes task-specific and use npm so `package.json` and `package-lock.json` change together.
 - Do not edit `node_modules/`, `dist/`, Vite caches, coverage output, local secret files, or temporary artifacts.
-- No frontend test script is configured. Do not assume or introduce a test framework unless requested.
+- Frontend tests use Vitest with jsdom. Import Vitest APIs directly instead of enabling globals; do not add broader test libraries unless requested.
 
 Run from `frontend/` for frontend changes:
 
 ```bash
+npm run test
 npm run lint
 npm run build
 ```

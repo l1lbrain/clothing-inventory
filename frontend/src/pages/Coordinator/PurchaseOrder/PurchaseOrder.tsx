@@ -120,7 +120,9 @@ export function PurchaseOrderPage() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    queueMicrotask(() => {
+      if (active) setLoading(true);
+    });
     getPurchaseOrdersPage(
       currentPage,
       debouncedQuery || undefined,

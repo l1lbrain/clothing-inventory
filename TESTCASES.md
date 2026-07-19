@@ -19,6 +19,7 @@ Từ `backend/` trên Windows PowerShell:
 Từ `frontend/`:
 
 ```bash
+npm run test
 npm run lint
 npm run build
 ```

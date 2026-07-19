@@ -6,7 +6,6 @@ import {
   type ProductUpdatePayload, updateVariant, type VariantUpdatePayload,
   getCategories, type CategoryResponseDto,
 } from "../../../services/product";
-import type { PurchaseOrder } from "../../../types/purchaseOrder.types";
 import { Card, CardHeader, CardBody } from "../../../components/Card/Card";
 import { Pagination } from "../../../components/Pagination/Pagination";
 import { Modal } from "../../../components/Modal/Modal";
@@ -92,10 +91,6 @@ export function ProductList() {
   const [bulkForm, setBulkForm] = useState({ importPrice: "", salePrice: "", status: "" });
   const [bulkErrors, setBulkErrors] = useState<Record<string, string>>({});
 
-  // PO detail
-  const [poDetail, setPoDetail] = useState<PurchaseOrder | null>(null);
-  const [poDetailLoading, setPoDetailLoading] = useState(false);
-
   // User detail modal
   const [quickViewUserId, setQuickViewUserId] = useState<string | null>(null);
   const [quickViewUserName, setQuickViewUserName] = useState("");
@@ -114,7 +109,9 @@ export function ProductList() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    queueMicrotask(() => {
+      if (active) setLoading(true);
+    });
     const backendSortBy = sortBy === "stock" ? "totalStock" : sortBy;
     getProductsPage(currentPage, debouncedQuery.trim() || undefined, statusFilter || undefined, backendSortBy, sortDir)
       .then((data) => {
@@ -317,17 +314,6 @@ export function ProductList() {
     } catch { showToast("Cập nhật giá hàng loạt thất bại", "error"); }
   };
 
-  const handlePOLinkClick = async (poCode: string) => {
-    try {
-      setPoDetailLoading(true);
-      const { getPurchaseOrdersPage } = await import("../../../services/purchaseOrder");
-      const result = await getPurchaseOrdersPage(1, poCode);
-      const found = result.items.find((o) => o.code === poCode);
-      if (found) setPoDetail(found); else showToast("Không tìm thấy đơn đặt hàng này!", "warning");
-    } catch { showToast("Không thể tải chi tiết đơn đặt hàng!", "error"); }
-    finally { setPoDetailLoading(false); }
-  };
-
   const isFormUnchanged = () => {
     if (!selectedProduct) return true;
     return (
@@ -464,7 +450,21 @@ export function ProductList() {
                     <tbody>
                       {selectedProduct.variants.map((v) => (
                         <tr key={v.id} className={checkedVariantIds.has(v.id) ? styles.variantRowChecked : ""}>
-                          <td style={{ textAlign: "center" }}><input type="checkbox" className={styles.variantCheckbox} checked={checkedVariantIds.has(v.id)} onChange={() => { setCheckedVariantIds((prev) => { const next = new Set(prev); next.has(v.id) ? next.delete(v.id) : next.add(v.id); return next; }); }} /></td>
+                          <td style={{ textAlign: "center" }}>
+                            <input
+                              type="checkbox"
+                              className={styles.variantCheckbox}
+                              checked={checkedVariantIds.has(v.id)}
+                              onChange={() => {
+                                setCheckedVariantIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(v.id)) next.delete(v.id);
+                                  else next.add(v.id);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </td>
                           <td><code>{v.sku}</code></td>
                           {selectedProduct.option1Name && <td>{v.option1Value || "—"}</td>}
                           {selectedProduct.option2Name && <td>{v.option2Value || "—"}</td>}
@@ -550,13 +550,9 @@ export function ProductList() {
         product={selectedProduct}
         form={variantForm}
         errors={variantErrors}
-        poDetail={poDetail}
-        poDetailLoading={poDetailLoading}
         onClose={closeVariantModals}
         onFormChange={(field, value) => { setVariantForm((prev) => ({ ...prev, [field]: value })); }}
         onSave={handleVariantSave}
-        onPOLinkClick={handlePOLinkClick}
-        onPoDetailClose={() => setPoDetail(null)}
       />
 
       {/* Bulk edit */}

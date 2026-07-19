@@ -47,14 +47,6 @@ export function SupplierSearchDropdown({
     };
   }, [search]);
 
-  // Load kết quả ban đầu khi mở dropdown lần đầu
-  useEffect(() => {
-    if (isOpen && results.length === 0 && !loading) {
-      setSearch(""); // trigger fetch
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
   // Đóng khi click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
